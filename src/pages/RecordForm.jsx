@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getRecord, createRecord, updateRecord } from '../lib/records';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { supabase } from '../lib/supabase';
 import CircuitGrid from '../components/CircuitGrid';
 import SignaturePad from '../components/SignaturePad';
 import {
   ArrowLeft, Save, CheckCircle2, Loader2, Zap,
-  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, BookmarkCheck
+  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, BookmarkCheck, Mail
 } from 'lucide-react';
 
 const DRAFT_KEY = 'asnzs_draft';
@@ -67,14 +67,94 @@ function Sel({ id, value, onChange, options }) {
   return (
     <select value={value || ''} onChange={(e) => onChange(id, e.target.value)}
       className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044] bg-white">
-      <option value="">â</option>
+      <option value="">—</option>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
 }
 
+// MSB displayed as a horizontal table row (label top, value bottom)
+function MsbTable({ form, setField }) {
+  const yn = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
+  const pf = [{ value: 'pass', label: '✓ Pass' }, { value: 'fail', label: '✗ Fail' }];
+
+  const Cell = ({ label, children }) => (
+    <td className="border border-slate-200 px-2 py-1 min-w-[100px]">
+      <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mb-1">{label}</div>
+      {children}
+    </td>
+  );
+
+  const inp = (id) => (
+    <input value={form[id] || ''} onChange={(e) => setField(id, e.target.value)}
+      className="w-full bg-transparent border-none outline-none text-xs focus:bg-blue-50/60 rounded px-0.5" />
+  );
+
+  const sel = (id, opts) => (
+    <select value={form[id] || ''} onChange={(e) => setField(id, e.target.value)}
+      className="w-full bg-transparent border-none outline-none text-xs focus:bg-blue-50/60 rounded appearance-none cursor-pointer">
+      <option value="">—</option>
+      {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+
+  return (
+    <div className="p-3 overflow-x-auto">
+      <table className="w-full text-xs border-collapse" style={{ minWidth: '1200px' }}>
+        <thead>
+          <tr className="bg-[#0f2044] text-white text-[9px] uppercase tracking-wider">
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">M.E.N. Compliant</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Max Demand (A)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Main Switch Rating (A)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Main Switch PSC (kA)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Conductor CCC (A)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Conductor Size (mm²)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Earth Cont. Main (Ω)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Earth Cont. EQ (Ω)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Polarity</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Ins. Res. A-E (MΩ)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Ins. Res. A-N (MΩ)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Ins. Res. N-E (MΩ)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Ins. Res. Ph-Ph (MΩ)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">PSC at Main Switch (kA)</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Live Parts Screened</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Main Link / Neutral Reconnected</th>
+            <th className="border border-[#1e4080] px-2 py-1.5 text-center">Circuit Length (m)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="bg-white">
+            <td className="border border-slate-200 px-1 py-1">{sel('msbMenCompliant', yn)}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbMaxDemand')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbMainSwitchCurrentRating')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbMainSwitchPscRating')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbConductorCcc')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbConductorSize')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbEarthContMain')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbEarthContEq')}</td>
+            <td className="border border-slate-200 px-1 py-1">{sel('msbPolarity', pf)}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbInsResAE')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbInsResAN')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbInsResNE')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbInsResPP')}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('pscAtMainSwitch')}</td>
+            <td className="border border-slate-200 px-1 py-1">{sel('livePartsScreened', yn)}</td>
+            <td className="border border-slate-200 px-1 py-1">{sel('mainLinkNeutralReconnected', yn)}</td>
+            <td className="border border-slate-200 px-1 py-1">{inp('msbCircuitLength')}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="mt-3">
+        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide block mb-1">Comments</label>
+        <textarea value={form.msbComments || ''} onChange={(e) => setField('msbComments', e.target.value)} rows={2}
+          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044] focus:ring-1 focus:ring-[#0f2044]/20" />
+      </div>
+    </div>
+  );
+}
+
 const YN_OPTIONS = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
-const PF_OPTIONS = [{ value: 'pass', label: 'â Pass' }, { value: 'fail', label: 'â Fail' }];
+const PF_OPTIONS = [{ value: 'pass', label: '✓ Pass' }, { value: 'fail', label: '✗ Fail' }];
 
 export default function RecordForm() {
   const { id } = useParams();
@@ -91,6 +171,7 @@ export default function RecordForm() {
   const [showBranding, setShowBranding] = useState(false);
   const [toast, setToast] = useState('');
   const [copied, setCopied] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -108,9 +189,8 @@ export default function RecordForm() {
           if (parsed.subRows) setSubRows(parsed.subRows);
         } else if (companyProfile) {
           setForm({ ...EMPTY_FORM, ...companyProfile });
-          setShowBranding(true);
         }
-      } catch {}
+      } catch { if (companyProfile) setForm({ ...EMPTY_FORM, ...companyProfile }); }
       if (companyProfile) setShowBranding(true);
       return;
     }
@@ -139,7 +219,7 @@ export default function RecordForm() {
     if (!user) return;
     const profile = { companyName: form.companyName, companyAbn: form.companyAbn, companyPhone: form.companyPhone, companyAddress: form.companyAddress, companyLogoUrl: form.companyLogoUrl };
     localStorage.setItem(COMPANY_PROFILE_KEY(user.id), JSON.stringify(profile));
-    showToast('Company details saved as default â');
+    showToast('Company details saved as default ✓');
   };
 
   const handleLogoUpload = async (e) => {
@@ -166,11 +246,11 @@ export default function RecordForm() {
       if (isNew) {
         const created = await createRecord(payload);
         localStorage.removeItem(DRAFT_KEY);
-        showToast(markComplete ? 'Record marked as complete â' : 'Record saved');
+        showToast(markComplete ? 'Record marked as complete ✓' : 'Record saved');
         navigate(`/records/${created.id}/edit`);
       } else {
         await updateRecord(id, payload);
-        showToast(markComplete ? 'Record marked as complete â' : 'Changes saved');
+        showToast(markComplete ? 'Record marked as complete ✓' : 'Changes saved');
       }
     } catch (e) {
       showToast('Failed to save: ' + e.message);
@@ -192,6 +272,39 @@ export default function RecordForm() {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleEmailClient = async () => {
+    if (!form.clientEmail) { showToast('Please enter a client email first'); return; }
+    if (isNew) { showToast('Please save the record first'); return; }
+    setSendingEmail(true);
+    try {
+      // Generate share token if needed
+      let shareToken = form.share_token;
+      if (!shareToken) {
+        shareToken = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+        await updateRecord(id, { ...form, share_token: shareToken, mainsCircuits: mainsRows, subCircuits: subRows });
+        setField('share_token', shareToken);
+      }
+      const shareUrl = `${window.location.origin}/share/${shareToken}`;
+      const subject = encodeURIComponent(`Electrical Test Results — ${form.addressLocation || 'Job'}`);
+      const body = encodeURIComponent(
+        `Dear Client,\n\nPlease find below a link to your electrical test results for the following job:\n\n` +
+        `Address: ${form.addressLocation || '—'}\n` +
+        `Date: ${form.date || '—'}\n` +
+        `Switchboard: ${form.switchboardNumber || '—'}\n` +
+        `Worker: ${form.workerName || '—'}\n` +
+        `Licence: ${form.licenceNumber || '—'}\n\n` +
+        `View & download your test results here:\n${shareUrl}\n\n` +
+        `From the link you can also print or save as PDF.\n\n` +
+        `Regards,\n${form.companyName || form.contractorName || 'Your Electrician'}`
+      );
+      window.open(`mailto:${form.clientEmail}?subject=${subject}&body=${body}`);
+      showToast('Email client opened ✓');
+    } catch (e) {
+      showToast('Error: ' + e.message);
+    }
+    setSendingEmail(false);
+  };
+
   if (loading) return (
     <div className="fixed inset-0 flex items-center justify-center bg-white">
       <Loader2 className="w-8 h-8 animate-spin text-[#0f2044]" />
@@ -211,9 +324,14 @@ export default function RecordForm() {
           </button>
           <div className="flex items-center gap-2">
             {!isNew && (
-              <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] transition-colors">
-                {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> Copied!</> : <><Share2 className="w-3.5 h-3.5" /> Share</>}
-              </button>
+              <>
+                <button onClick={handleEmailClient} disabled={sendingEmail || !form.clientEmail} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-blue-400 hover:text-blue-600 disabled:opacity-40 transition-colors" title={!form.clientEmail ? 'Add client email first' : 'Email job card to client'}>
+                  {sendingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />} Email Client
+                </button>
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] transition-colors">
+                  {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> Copied!</> : <><Share2 className="w-3.5 h-3.5" /> Share</>}
+                </button>
+              </>
             )}
             <button onClick={() => !isNew && navigate(`/records/${id}/view`)} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40 transition-colors">
               <FileDown className="w-3.5 h-3.5" /> View / PDF
@@ -234,6 +352,7 @@ export default function RecordForm() {
           <p className="text-slate-500 text-sm mt-1">AS/NZS 3000:2018 & AS/NZS 3008 Schedule of Test Results</p>
         </div>
 
+        {/* Contractor & Job Details */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Contractor & Job Details" colour="bg-[#0f2044]" />
           <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -246,10 +365,11 @@ export default function RecordForm() {
             <Field label="Contractor Number"><TF id="contractorNumber" value={form.contractorNumber} onChange={setField} /></Field>
             <Field label="Worker Name"><TF id="workerName" value={form.workerName} onChange={setField} /></Field>
             <Field label="Licence Number"><TF id="licenceNumber" value={form.licenceNumber} onChange={setField} /></Field>
-            <Field label="Client Email"><TF id="clientEmail" value={form.clientEmail} onChange={setField} type="email" /></Field>
+            <Field label="Client Email"><TF id="clientEmail" value={form.clientEmail} onChange={setField} type="email" placeholder="client@example.com" /></Field>
           </div>
         </div>
 
+        {/* Test Equipment */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Test Equipment" colour="bg-slate-700" />
           <div className="p-5 overflow-x-auto">
@@ -276,43 +396,25 @@ export default function RecordForm() {
           </div>
         </div>
 
+        {/* Main Switchboard — displayed as a single data row */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Main Switchboard (MSB)" colour="bg-[#1e4080]" />
-          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Field label="M.E.N. Compliant"><Sel id="msbMenCompliant" value={form.msbMenCompliant} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Max Demand (A)"><TF id="msbMaxDemand" value={form.msbMaxDemand} onChange={setField} /></Field>
-            <Field label="Main Switch Current Rating (A)"><TF id="msbMainSwitchCurrentRating" value={form.msbMainSwitchCurrentRating} onChange={setField} /></Field>
-            <Field label="Main Switch PSC Rating (kA)"><TF id="msbMainSwitchPscRating" value={form.msbMainSwitchPscRating} onChange={setField} /></Field>
-            <Field label="Conductor CCC (A)"><TF id="msbConductorCcc" value={form.msbConductorCcc} onChange={setField} /></Field>
-            <Field label="Conductor Size (mmÂ²)"><TF id="msbConductorSize" value={form.msbConductorSize} onChange={setField} /></Field>
-            <Field label="Earth Cont. â Main (Î©)"><TF id="msbEarthContMain" value={form.msbEarthContMain} onChange={setField} /></Field>
-            <Field label="Earth Cont. â EQ (Î©)"><TF id="msbEarthContEq" value={form.msbEarthContEq} onChange={setField} /></Field>
-            <Field label="Polarity"><Sel id="msbPolarity" value={form.msbPolarity} onChange={setField} options={PF_OPTIONS} /></Field>
-            <Field label="Ins. Res. A-E (MÎ©)"><TF id="msbInsResAE" value={form.msbInsResAE} onChange={setField} /></Field>
-            <Field label="Ins. Res. A-N (MÎ©)"><TF id="msbInsResAN" value={form.msbInsResAN} onChange={setField} /></Field>
-            <Field label="Ins. Res. N-E (MÎ©)"><TF id="msbInsResNE" value={form.msbInsResNE} onChange={setField} /></Field>
-            <Field label="Ins. Res. Ph-Ph (MÎ©)"><TF id="msbInsResPP" value={form.msbInsResPP} onChange={setField} /></Field>
-            <Field label="PSC at Main Switch (kA)"><TF id="pscAtMainSwitch" value={form.pscAtMainSwitch} onChange={setField} /></Field>
-            <Field label="Live Parts Screened"><Sel id="livePartsScreened" value={form.livePartsScreened} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Main Link / Neutral Reconnected"><Sel id="mainLinkNeutralReconnected" value={form.mainLinkNeutralReconnected} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Circuit Length (m)"><TF id="msbCircuitLength" value={form.msbCircuitLength} onChange={setField} /></Field>
-            <Field label="Comments" className="col-span-2 lg:col-span-4">
-              <textarea value={form.msbComments || ''} onChange={(e) => setField('msbComments', e.target.value)} rows={2}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044] focus:ring-1 focus:ring-[#0f2044]/20" />
-            </Field>
-          </div>
+          <MsbTable form={form} setField={setField} />
         </div>
 
+        {/* Consumer and Sub Mains */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Consumer and Sub Mains" colour="bg-[#1e4080]" />
           <div className="p-3"><CircuitGrid rows={mainsRows} onChange={setMainsRows} minRows={5} /></div>
         </div>
 
+        {/* Final Sub Circuits */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Final Sub Circuits" colour="bg-[#1a3a6b]" />
           <div className="p-3"><CircuitGrid rows={subRows} onChange={setSubRows} minRows={10} /></div>
         </div>
 
+        {/* Company Branding */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <button className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" onClick={() => setShowBranding(!showBranding)}>
             <span>Company Branding (optional)</span>
@@ -335,10 +437,10 @@ export default function RecordForm() {
                     <label className="flex items-center gap-2 cursor-pointer w-fit">
                       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-medium transition-colors">
                         {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {uploadingLogo ? 'Uploadingâ¦' : 'Upload Logo'}
+                        {uploadingLogo ? 'Uploading…' : 'Upload Logo'}
                       </div>
                       <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
-                      <span className="text-xs text-slate-400">PNG, JPG â shown on PDF</span>
+                      <span className="text-xs text-slate-400">PNG, JPG — shown on PDF</span>
                     </label>
                   )}
                 </Field>
@@ -350,13 +452,14 @@ export default function RecordForm() {
           )}
         </div>
 
+        {/* Declaration & Signature */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Declaration & Signature" colour="bg-slate-700" />
           <div className="p-5 space-y-4">
             <p className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
               I declare that the electrical installation described above has been tested in accordance with AS/NZS 3000:2018 and AS/NZS 3017 and the results are as recorded above.
             </p>
-            <Field label="Signature â Registered Electrical Worker">
+            <Field label="Signature — Registered Electrical Worker">
               <SignaturePad value={form.signatureData} onChange={(v) => setField('signatureData', v || '')} />
             </Field>
             <Field label="Notes / Defects">
