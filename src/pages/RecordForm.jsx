@@ -215,8 +215,8 @@ export default function RecordForm() {
                 {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> Copied!</> : <><Share2 className="w-3.5 h-3.5" /> Share</>}
               </button>
             )}
-            <button onClick={() => !isNew && navigate(`/records/${id}/report`)} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40 transition-colors">
-              <FileDown className="w-3.5 h-3.5" /> Preview Report
+            <button onClick={() => !isNew && navigate(`/records/${id}/view`)} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40 transition-colors">
+              <FileDown className="w-3.5 h-3.5" /> View / PDF
             </button>
             <button onClick={() => handleSave(false)} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-60 transition-colors">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
