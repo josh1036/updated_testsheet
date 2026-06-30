@@ -67,14 +67,14 @@ function Sel({ id, value, onChange, options }) {
   return (
     <select value={value || ''} onChange={(e) => onChange(id, e.target.value)}
       className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044] bg-white">
-      <option value="">—</option>
+      <option value="">â</option>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
 }
 
 const YN_OPTIONS = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
-const PF_OPTIONS = [{ value: 'pass', label: '✓ Pass' }, { value: 'fail', label: '✗ Fail' }];
+const PF_OPTIONS = [{ value: 'pass', label: 'â Pass' }, { value: 'fail', label: 'â Fail' }];
 
 export default function RecordForm() {
   const { id } = useParams();
@@ -139,7 +139,7 @@ export default function RecordForm() {
     if (!user) return;
     const profile = { companyName: form.companyName, companyAbn: form.companyAbn, companyPhone: form.companyPhone, companyAddress: form.companyAddress, companyLogoUrl: form.companyLogoUrl };
     localStorage.setItem(COMPANY_PROFILE_KEY(user.id), JSON.stringify(profile));
-    showToast('Company details saved as default ✓');
+    showToast('Company details saved as default â');
   };
 
   const handleLogoUpload = async (e) => {
@@ -149,9 +149,9 @@ export default function RecordForm() {
     try {
       const ext = file.name.split('.').pop();
       const path = `logos/${user.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from('Company Logos').upload(path, file, { upsert: true });
       if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage.from('Company Logos').getPublicUrl(path);
       setField('companyLogoUrl', publicUrl);
     } catch (err) {
       showToast('Logo upload failed: ' + err.message);
@@ -166,11 +166,11 @@ export default function RecordForm() {
       if (isNew) {
         const created = await createRecord(payload);
         localStorage.removeItem(DRAFT_KEY);
-        showToast(markComplete ? 'Record marked as complete ✓' : 'Record saved');
+        showToast(markComplete ? 'Record marked as complete â' : 'Record saved');
         navigate(`/records/${created.id}/edit`);
       } else {
         await updateRecord(id, payload);
-        showToast(markComplete ? 'Record marked as complete ✓' : 'Changes saved');
+        showToast(markComplete ? 'Record marked as complete â' : 'Changes saved');
       }
     } catch (e) {
       showToast('Failed to save: ' + e.message);
@@ -284,14 +284,14 @@ export default function RecordForm() {
             <Field label="Main Switch Current Rating (A)"><TF id="msbMainSwitchCurrentRating" value={form.msbMainSwitchCurrentRating} onChange={setField} /></Field>
             <Field label="Main Switch PSC Rating (kA)"><TF id="msbMainSwitchPscRating" value={form.msbMainSwitchPscRating} onChange={setField} /></Field>
             <Field label="Conductor CCC (A)"><TF id="msbConductorCcc" value={form.msbConductorCcc} onChange={setField} /></Field>
-            <Field label="Conductor Size (mm²)"><TF id="msbConductorSize" value={form.msbConductorSize} onChange={setField} /></Field>
-            <Field label="Earth Cont. — Main (Ω)"><TF id="msbEarthContMain" value={form.msbEarthContMain} onChange={setField} /></Field>
-            <Field label="Earth Cont. — EQ (Ω)"><TF id="msbEarthContEq" value={form.msbEarthContEq} onChange={setField} /></Field>
+            <Field label="Conductor Size (mmÂ²)"><TF id="msbConductorSize" value={form.msbConductorSize} onChange={setField} /></Field>
+            <Field label="Earth Cont. â Main (Î©)"><TF id="msbEarthContMain" value={form.msbEarthContMain} onChange={setField} /></Field>
+            <Field label="Earth Cont. â EQ (Î©)"><TF id="msbEarthContEq" value={form.msbEarthContEq} onChange={setField} /></Field>
             <Field label="Polarity"><Sel id="msbPolarity" value={form.msbPolarity} onChange={setField} options={PF_OPTIONS} /></Field>
-            <Field label="Ins. Res. A-E (MΩ)"><TF id="msbInsResAE" value={form.msbInsResAE} onChange={setField} /></Field>
-            <Field label="Ins. Res. A-N (MΩ)"><TF id="msbInsResAN" value={form.msbInsResAN} onChange={setField} /></Field>
-            <Field label="Ins. Res. N-E (MΩ)"><TF id="msbInsResNE" value={form.msbInsResNE} onChange={setField} /></Field>
-            <Field label="Ins. Res. Ph-Ph (MΩ)"><TF id="msbInsResPP" value={form.msbInsResPP} onChange={setField} /></Field>
+            <Field label="Ins. Res. A-E (MÎ©)"><TF id="msbInsResAE" value={form.msbInsResAE} onChange={setField} /></Field>
+            <Field label="Ins. Res. A-N (MÎ©)"><TF id="msbInsResAN" value={form.msbInsResAN} onChange={setField} /></Field>
+            <Field label="Ins. Res. N-E (MÎ©)"><TF id="msbInsResNE" value={form.msbInsResNE} onChange={setField} /></Field>
+            <Field label="Ins. Res. Ph-Ph (MÎ©)"><TF id="msbInsResPP" value={form.msbInsResPP} onChange={setField} /></Field>
             <Field label="PSC at Main Switch (kA)"><TF id="pscAtMainSwitch" value={form.pscAtMainSwitch} onChange={setField} /></Field>
             <Field label="Live Parts Screened"><Sel id="livePartsScreened" value={form.livePartsScreened} onChange={setField} options={YN_OPTIONS} /></Field>
             <Field label="Main Link / Neutral Reconnected"><Sel id="mainLinkNeutralReconnected" value={form.mainLinkNeutralReconnected} onChange={setField} options={YN_OPTIONS} /></Field>
@@ -335,10 +335,10 @@ export default function RecordForm() {
                     <label className="flex items-center gap-2 cursor-pointer w-fit">
                       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-medium transition-colors">
                         {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {uploadingLogo ? 'Uploading…' : 'Upload Logo'}
+                        {uploadingLogo ? 'Uploadingâ¦' : 'Upload Logo'}
                       </div>
                       <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
-                      <span className="text-xs text-slate-400">PNG, JPG — shown on PDF</span>
+                      <span className="text-xs text-slate-400">PNG, JPG â shown on PDF</span>
                     </label>
                   )}
                 </Field>
@@ -356,7 +356,7 @@ export default function RecordForm() {
             <p className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
               I declare that the electrical installation described above has been tested in accordance with AS/NZS 3000:2018 and AS/NZS 3017 and the results are as recorded above.
             </p>
-            <Field label="Signature — Registered Electrical Worker">
+            <Field label="Signature â Registered Electrical Worker">
               <SignaturePad value={form.signatureData} onChange={(v) => setField('signatureData', v || '')} />
             </Field>
             <Field label="Notes / Defects">
