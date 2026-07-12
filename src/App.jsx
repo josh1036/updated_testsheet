@@ -9,6 +9,8 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import RecordForm from './pages/RecordForm';
 import RecordView from './pages/RecordView';
+import ReportPreview from './pages/ReportPreview';
+import TorqueForm from './pages/TorqueForm';
 
 export default function App() {
   return (
@@ -26,6 +28,9 @@ export default function App() {
             <Route path="/records/new" element={<RecordForm />} />
             <Route path="/records/:id/edit" element={<RecordForm />} />
             <Route path="/records/:id/view" element={<RecordView />} />
+            <Route path="/records/:id/report" element={<ReportPreview />} />
+            <Route path="/torque/new" element={<TorqueForm />} />
+            <Route path="/torque/:id/edit" element={<TorqueForm />} />
           </Route>
           <Route path="*" element={<div className="flex items-center justify-center min-h-screen text-slate-500">Page not found.</div>} />
         </Routes>
