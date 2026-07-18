@@ -4,10 +4,11 @@ import { getRecord, createRecord, updateRecord } from '../lib/records';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import CircuitGrid from '../components/CircuitGrid';
+import MccbSettings from '../components/MccbSettings';
 import SignaturePad from '../components/SignaturePad';
 import {
   ArrowLeft, Save, CheckCircle2, Loader2, Zap,
-  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, BookmarkCheck
+  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, Plus, Trash2
 } from 'lucide-react';
 
 const DRAFT_KEY = 'asnzs_draft';
@@ -22,6 +23,7 @@ const emptyRow = () => ({
 });
 
 const makeRows = (n) => Array.from({ length: n }, emptyRow);
+const EMPTY_EQUIP_ROW = () => ({ type: '', serial: '', calDate: '' });
 
 const EMPTY_FORM = {
   status: 'Draft',
@@ -30,15 +32,11 @@ const EMPTY_FORM = {
   contractorNumber: '', workerName: '', licenceNumber: '', clientEmail: '',
   pscAtMainSwitch: '', livePartsScreened: '', mainLinkNeutralReconnected: '',
   signatureData: '',
-  testEquip1Type: '', testEquip1Serial: '', testEquip1CalDate: '',
-  testEquip2Type: '', testEquip2Serial: '', testEquip2CalDate: '',
-  testEquip3Type: '', testEquip3Serial: '', testEquip3CalDate: '',
-  testEquip4Type: '', testEquip4Serial: '', testEquip4CalDate: '',
+  msbName: '', msbNameOther: '',
   msbMenCompliant: '', msbMaxDemand: '', msbMainSwitchCurrentRating: '',
   msbMainSwitchPscRating: '', msbConductorCcc: '', msbConductorSize: '',
-  msbEarthContMain: '', msbEarthContEq: '', msbPolarity: '',
-  msbInsResAE: '', msbInsResAN: '', msbInsResNE: '', msbInsResPP: '',
-  msbCircuitLength: '', msbComments: '',
+  msbEarthContMain: '', msbEarthContEq: '',
+  msbCircuitLength: '', msbArcFlashRating: '', msbComments: '',
   companyName: '', companyAbn: '', companyPhone: '', companyAddress: '', companyLogoUrl: '',
   notes: '',
 };
@@ -85,6 +83,7 @@ export default function RecordForm() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [mainsRows, setMainsRows] = useState(makeRows(5));
   const [subRows, setSubRows] = useState(makeRows(20));
+  const [equipRows, setEquipRows] = useState([EMPTY_EQUIP_ROW(), EMPTY_EQUIP_ROW(), EMPTY_EQUIP_ROW(), EMPTY_EQUIP_ROW()]);
   const [loading, setLoading] = useState(!!id && id !== 'new');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -118,6 +117,7 @@ export default function RecordForm() {
       setForm({ ...EMPTY_FORM, ...data });
       if (data.mainsCircuits?.length) setMainsRows(data.mainsCircuits);
       if (data.subCircuits?.length) setSubRows(data.subCircuits);
+      if (data.testEquipment?.length) setEquipRows(data.testEquipment);
       if (data.companyName || data.companyLogoUrl) setShowBranding(true);
       setLoading(false);
     });
@@ -161,7 +161,7 @@ export default function RecordForm() {
 
   const handleSave = async (markComplete = false) => {
     setSaving(true);
-    const payload = { ...form, status: markComplete ? 'Complete' : (form.status || 'Draft'), mainsCircuits: mainsRows, subCircuits: subRows };
+    const payload = { ...form, status: markComplete ? 'Complete' : (form.status || 'Draft'), mainsCircuits: mainsRows, subCircuits: subRows, testEquipment: equipRows, mccbSettings: form.mccbSettings || [] };
     try {
       if (isNew) {
         const created = await createRecord(payload);
@@ -252,56 +252,98 @@ export default function RecordForm() {
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Test Equipment" colour="bg-slate-700" />
-          <div className="p-5 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-                  <th className="text-left px-3 py-2">#</th>
-                  <th className="text-left px-3 py-2">Type / Description</th>
-                  <th className="text-left px-3 py-2">Serial Number</th>
-                  <th className="text-left px-3 py-2">Cal. Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {[1, 2, 3, 4].map((n) => (
-                  <tr key={n}>
-                    <td className="px-3 py-2 text-slate-400 font-mono text-xs">{n}</td>
-                    <td className="px-3 py-2"><TF id={`testEquip${n}Type`} value={form[`testEquip${n}Type`]} onChange={setField} placeholder="e.g. Insulation tester" /></td>
-                    <td className="px-3 py-2"><TF id={`testEquip${n}Serial`} value={form[`testEquip${n}Serial`]} onChange={setField} /></td>
-                    <td className="px-3 py-2"><TF id={`testEquip${n}CalDate`} value={form[`testEquip${n}CalDate`]} onChange={setField} type="date" /></td>
+          <div className="p-5">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
+                    <th className="text-left px-3 py-2">#</th>
+                    <th className="text-left px-3 py-2">Type / Description</th>
+                    <th className="text-left px-3 py-2">Serial Number</th>
+                    <th className="text-left px-3 py-2">Cal. Date</th>
+                    <th className="px-3 py-2 w-8"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {equipRows.map((row, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-2 text-slate-400 font-mono text-xs">{i + 1}</td>
+                      <td className="px-3 py-2"><TF id="type" value={row.type} onChange={(_, v) => setEquipRows(r => r.map((x, idx) => idx === i ? { ...x, type: v } : x))} placeholder="e.g. Insulation tester" /></td>
+                      <td className="px-3 py-2"><TF id="serial" value={row.serial} onChange={(_, v) => setEquipRows(r => r.map((x, idx) => idx === i ? { ...x, serial: v } : x))} /></td>
+                      <td className="px-3 py-2"><TF id="calDate" value={row.calDate} onChange={(_, v) => setEquipRows(r => r.map((x, idx) => idx === i ? { ...x, calDate: v } : x))} type="date" /></td>
+                      <td className="px-3 py-2"><button onClick={() => setEquipRows(r => r.filter((_, idx) => idx !== i))} disabled={equipRows.length <= 1} className="text-slate-300 hover:text-red-500 disabled:opacity-20"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3">
+              <button onClick={() => setEquipRows(r => [...r, EMPTY_EQUIP_ROW()])} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-700 hover:bg-slate-50 transition-colors">
+                <Plus className="w-3 h-3" /> Add Equipment
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <SH title="Main Switchboard (MSB)" colour="bg-[#1e4080]" />
-          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <Field label="M.E.N. Compliant"><Sel id="msbMenCompliant" value={form.msbMenCompliant} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Max Demand (A)"><TF id="msbMaxDemand" value={form.msbMaxDemand} onChange={setField} /></Field>
-            <Field label="Main Switch Current Rating (A)"><TF id="msbMainSwitchCurrentRating" value={form.msbMainSwitchCurrentRating} onChange={setField} /></Field>
-            <Field label="Main Switch PSC Rating (kA)"><TF id="msbMainSwitchPscRating" value={form.msbMainSwitchPscRating} onChange={setField} /></Field>
-            <Field label="Conductor CCC (A)"><TF id="msbConductorCcc" value={form.msbConductorCcc} onChange={setField} /></Field>
-            <Field label="Conductor Size (mm²)"><TF id="msbConductorSize" value={form.msbConductorSize} onChange={setField} /></Field>
-            <Field label="Earth Cont. — Main (Ω)"><TF id="msbEarthContMain" value={form.msbEarthContMain} onChange={setField} /></Field>
-            <Field label="Earth Cont. — EQ (Ω)"><TF id="msbEarthContEq" value={form.msbEarthContEq} onChange={setField} /></Field>
-            <Field label="Polarity"><Sel id="msbPolarity" value={form.msbPolarity} onChange={setField} options={PF_OPTIONS} /></Field>
-            <Field label="Ins. Res. A-E (MΩ)"><TF id="msbInsResAE" value={form.msbInsResAE} onChange={setField} /></Field>
-            <Field label="Ins. Res. A-N (MΩ)"><TF id="msbInsResAN" value={form.msbInsResAN} onChange={setField} /></Field>
-            <Field label="Ins. Res. N-E (MΩ)"><TF id="msbInsResNE" value={form.msbInsResNE} onChange={setField} /></Field>
-            <Field label="Ins. Res. Ph-Ph (MΩ)"><TF id="msbInsResPP" value={form.msbInsResPP} onChange={setField} /></Field>
-            <Field label="PSC at Main Switch (kA)"><TF id="pscAtMainSwitch" value={form.pscAtMainSwitch} onChange={setField} /></Field>
-            <Field label="Live Parts Screened"><Sel id="livePartsScreened" value={form.livePartsScreened} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Main Link / Neutral Reconnected"><Sel id="mainLinkNeutralReconnected" value={form.mainLinkNeutralReconnected} onChange={setField} options={YN_OPTIONS} /></Field>
-            <Field label="Circuit Length (m)"><TF id="msbCircuitLength" value={form.msbCircuitLength} onChange={setField} /></Field>
-            <Field label="Comments" className="col-span-2 lg:col-span-4">
+          <div className="bg-[#1e4080] text-white px-4 py-2.5 font-bold text-sm uppercase tracking-wider">
+            {form.msbName && form.msbName !== 'Other' ? form.msbName : form.msbNameOther || 'Switchboard'}
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Field label="Switchboard Type" className="col-span-2 sm:col-span-2">
+                <select value={form.msbName || ''} onChange={(e) => setField('msbName', e.target.value)} className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044]">
+                  <option value="">— Select —</option>
+                  <option value="Main Switchboard (MSB)">Main Switchboard (MSB)</option>
+                  <option value="Distribution Board (DB)">Distribution Board (DB)</option>
+                  <option value="Sub-board">Sub-board</option>
+                  <option value="MCC">MCC</option>
+                  <option value="Control Panel">Control Panel</option>
+                  <option value="Generator Switchboard">Generator Switchboard</option>
+                  <option value="Other">Other (specify below)</option>
+                </select>
+                {form.msbName === 'Other' && <TF id="msbNameOther" value={form.msbNameOther} onChange={setField} placeholder="Specify..." />}
+              </Field>
+              <Field label="M.E.N. Compliant">
+                <select value={form.msbMenCompliant || ''} onChange={(e) => setField('msbMenCompliant', e.target.value)} className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044]">
+                  <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+                </select>
+              </Field>
+              <Field label="Max Demand (A)"><TF id="msbMaxDemand" value={form.msbMaxDemand} onChange={setField} /></Field>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Field label="Main Switch Current Rating (A)"><TF id="msbMainSwitchCurrentRating" value={form.msbMainSwitchCurrentRating} onChange={setField} /></Field>
+              <Field label="Main Switch PSC Rating (kA)"><TF id="msbMainSwitchPscRating" value={form.msbMainSwitchPscRating} onChange={setField} /></Field>
+              <Field label="Conductor CCC (A)"><TF id="msbConductorCcc" value={form.msbConductorCcc} onChange={setField} /></Field>
+              <Field label="Conductor Size (mm²)"><TF id="msbConductorSize" value={form.msbConductorSize} onChange={setField} /></Field>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Field label="Earth Cont. — Main (Ω)"><TF id="msbEarthContMain" value={form.msbEarthContMain} onChange={setField} /></Field>
+              <Field label="Earth Cont. — EQ (Ω)"><TF id="msbEarthContEq" value={form.msbEarthContEq} onChange={setField} /></Field>
+              <Field label="PSC at Main Switch (kA)"><TF id="pscAtMainSwitch" value={form.pscAtMainSwitch} onChange={setField} /></Field>
+              <Field label="Arc Flash Rating (kA)"><TF id="msbArcFlashRating" value={form.msbArcFlashRating} onChange={setField} /></Field>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <Field label="Live Parts Screened">
+                <select value={form.livePartsScreened || ''} onChange={(e) => setField('livePartsScreened', e.target.value)} className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044]">
+                  <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+                </select>
+              </Field>
+              <Field label="Main Link / Neutral Reconnected">
+                <select value={form.mainLinkNeutralReconnected || ''} onChange={(e) => setField('mainLinkNeutralReconnected', e.target.value)} className="w-full h-8 px-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044]">
+                  <option value="">—</option><option value="yes">Yes</option><option value="no">No</option>
+                </select>
+              </Field>
+              <Field label="Circuit Length (m)"><TF id="msbCircuitLength" value={form.msbCircuitLength} onChange={setField} /></Field>
+            </div>
+            <Field label="Comments">
               <textarea value={form.msbComments || ''} onChange={(e) => setField('msbComments', e.target.value)} rows={2}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044] focus:ring-1 focus:ring-[#0f2044]/20" />
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:border-[#0f2044]" />
             </Field>
           </div>
         </div>
+
+        <MccbSettings rows={form.mccbSettings || []} onChange={(v) => setField('mccbSettings', v)} />
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <SH title="Consumer and Sub Mains" colour="bg-[#1e4080]" />
