@@ -248,7 +248,7 @@ export default function ReportPreview() {
           <button onClick={handlePdf} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0f2044] text-white text-sm hover:bg-[#162d4a]"><Download className="w-4 h-4" /> Save PDF</button>
         </div>
       </div>
-      <div ref={reportRef} style={{ position: 'fixed', top: 0, left: '-9999px', width: '210mm', zIndex: -1, background: 'white' }} aria-hidden="true">
+      <div ref={reportRef} style={{ position: 'fixed', top: 0, left: 0, width: '794px', opacity: 0, pointerEvents: 'none', zIndex: -1, background: 'white', overflow: 'visible' }} aria-hidden="true">
         {record && <ReportContent record={record} />}
       </div>
       <PdfActionModal open={pdfModal.open} onClose={() => setPdfModal(m => ({ ...m, open: false }))} pdfBlob={pdfModal.blob} generating={pdfModal.generating} progress={pdfModal.progress} error={pdfModal.error} filename={filename} />
