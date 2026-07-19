@@ -112,7 +112,7 @@ function PageWrap({ children }) {
 function ReportContent({ record }) {
   const r = record;
   const swId = r.msbName === 'Other' ? (r.msbNameOther || 'Other') : r.msbName;
-  const equip = [1,2,3,4].filter(n => r[`testEquip${n}Type`]).map(n => ({ type: r[`testEquip${n}Type`], serial: r[`testEquip${n}Serial`], calDate: r[`testEquip${n}CalDate`] }));
+  const equip = (r.testEquipment || []).filter(e => e.type);
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', background: 'white' }}>
       <PageWrap>
