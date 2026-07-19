@@ -134,7 +134,7 @@ export default function RecordView({ shareMode = false }) {
           </div>
         </div>
 
-        {[1,2,3,4].some((n) => record[`testEquip${n}Type`]) && (
+        {(record.testEquipment || []).some(e => e.type) && (
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <SH title="Test Equipment" colour="bg-slate-700" />
             <div className="p-4 overflow-x-auto">
@@ -144,12 +144,12 @@ export default function RecordView({ shareMode = false }) {
                   <th className="text-left pb-2">Serial</th><th className="text-left pb-2">Cal. Date</th>
                 </tr></thead>
                 <tbody className="divide-y divide-slate-100">
-                  {[1,2,3,4].filter((n) => record[`testEquip${n}Type`]).map((n) => (
-                    <tr key={n}>
-                      <td className="py-1.5 text-slate-400 font-mono text-xs">{n}</td>
-                      <td className="py-1.5">{record[`testEquip${n}Type`]}</td>
-                      <td className="py-1.5">{record[`testEquip${n}Serial`] || '—'}</td>
-                      <td className="py-1.5">{record[`testEquip${n}CalDate`] || '—'}</td>
+                  {(record.testEquipment || []).filter(e => e.type).map((e, i) => (
+                    <tr key={i}>
+                      <td className="py-1.5 text-slate-400 font-mono text-xs">{i + 1}</td>
+                      <td className="py-1.5">{e.type}</td>
+                      <td className="py-1.5">{e.serial || '—'}</td>
+                      <td className="py-1.5">{e.calDate || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
