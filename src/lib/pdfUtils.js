@@ -11,8 +11,10 @@ export function buildTorqueFilename(record) {
   return parts.join('_') + '.pdf';
 }
 export async function elementToPdfBlob(element, { onProgress } = {}) {
-  const { default: jsPDF } = await import('jspdf');
-  const { default: html2canvas } = await import('html2canvas');
+  const jspdfMod = await import('jspdf');
+  const jsPDF = jspdfMod.jsPDF || jspdfMod.default;
+  const html2canvasMod = await import('html2canvas');
+  const html2canvas = html2canvasMod.default || html2canvasMod;
   onProgress?.(0.05);
   const A4_W = 210, A4_H = 297, SCALE = 2;
   const pageEls = element.querySelectorAll('.report-page');
