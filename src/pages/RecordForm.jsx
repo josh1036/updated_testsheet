@@ -8,7 +8,7 @@ import MccbSettings from '../components/MccbSettings';
 import SignaturePad from '../components/SignaturePad';
 import {
   ArrowLeft, Save, CheckCircle2, Loader2, Zap,
-  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, Plus, Trash2
+  FileDown, Share2, ChevronDown, ChevronUp, Upload, X, Plus, Trash2, BookmarkCheck
 } from 'lucide-react';
 
 const DRAFT_KEY = 'asnzs_draft';
@@ -70,9 +70,6 @@ function Sel({ id, value, onChange, options }) {
     </select>
   );
 }
-
-const YN_OPTIONS = [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
-const PF_OPTIONS = [{ value: 'pass', label: '✓ Pass' }, { value: 'fail', label: '✗ Fail' }];
 
 export default function RecordForm() {
   const { id } = useParams();

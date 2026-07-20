@@ -104,18 +104,16 @@ export default function RecordView({ shareMode = false }) {
             </div>
           </div>
         )}
-
         <div className="bg-gradient-to-br from-[#0f2044] to-[#1e4080] text-white rounded-xl p-6">
           <h1 className="text-xl font-bold tracking-tight">Schedule of Test Results</h1>
-          <p className="text-blue-200 text-xs mt-1">Mandatory testing in accordance with AS/NZS 3000:2018 clause 8.3 · Conductor sizing per AS/NZS 3008.1.1 & AS/NZS 3008.1.2</p>
+          <p className="text-blue-200 text-xs mt-1">Mandatory testing in accordance with AS/NZS 3000:2018 clause 8.3</p>
           {record.signatureData && (
             <div className="mt-4">
-              <p className="text-xs text-blue-300 mb-1 uppercase tracking-wide font-semibold">Digital Signature — Registered Electrical Worker</p>
+              <p className="text-xs text-blue-300 mb-1 uppercase tracking-wide font-semibold">Digital Signature</p>
               <img src={record.signatureData} alt="Signature" className="h-12 bg-white rounded-lg px-2 py-1" />
             </div>
           )}
         </div>
-
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <SH title="Contractor & Job Details" colour="bg-[#0f2044]" />
           <div className="p-4 grid sm:grid-cols-2 gap-x-8">
@@ -133,83 +131,14 @@ export default function RecordView({ shareMode = false }) {
             </tbody></table>
           </div>
         </div>
-
-        {(record.testEquipment || []).some(e => e.type) && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <SH title="Test Equipment" colour="bg-slate-700" />
-            <div className="p-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-xs text-slate-500 uppercase">
-                  <th className="text-left pb-2">#</th><th className="text-left pb-2">Type</th>
-                  <th className="text-left pb-2">Serial</th><th className="text-left pb-2">Cal. Date</th>
-                </tr></thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(record.testEquipment || []).filter(e => e.type).map((e, i) => (
-                    <tr key={i}>
-                      <td className="py-1.5 text-slate-400 font-mono text-xs">{i + 1}</td>
-                      <td className="py-1.5">{e.type}</td>
-                      <td className="py-1.5">{e.serial || '—'}</td>
-                      <td className="py-1.5">{e.calDate || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <SH title="Main Switchboard (MSB)" colour="bg-[#1e4080]" />
-          <div className="p-4 grid sm:grid-cols-2 gap-x-8">
-            <table className="w-full"><tbody>
-              <Row label="M.E.N. Compliant" value={record.msbMenCompliant} />
-              <Row label="Max Demand (A)" value={record.msbMaxDemand} />
-              <Row label="Main Switch Current Rating (A)" value={record.msbMainSwitchCurrentRating} />
-              <Row label="Main Switch PSC Rating (kA)" value={record.msbMainSwitchPscRating} />
-              <Row label="Conductor CCC (A)" value={record.msbConductorCcc} />
-              <Row label="Conductor Size (mm²)" value={record.msbConductorSize} />
-              <Row label="PSC at Main Switch (kA)" value={record.pscAtMainSwitch} />
-            </tbody></table>
-            <table className="w-full"><tbody>
-              <Row label="Earth Cont. — Main (Ω)" value={record.msbEarthContMain} />
-              <Row label="Earth Cont. — EQ (Ω)" value={record.msbEarthContEq} />
-              <Row label="Polarity" value={record.msbPolarity} />
-              <Row label="Ins. Res. A-E (MΩ)" value={record.msbInsResAE} />
-              <Row label="Ins. Res. A-N (MΩ)" value={record.msbInsResAN} />
-              <Row label="Ins. Res. N-E (MΩ)" value={record.msbInsResNE} />
-              <Row label="Ins. Res. Ph-Ph (MΩ)" value={record.msbInsResPP} />
-              <Row label="Live Parts Screened" value={record.livePartsScreened} />
-              <Row label="Main Link / Neutral Reconnected" value={record.mainLinkNeutralReconnected} />
-            </tbody></table>
-          </div>
-          {record.msbComments && (
-            <div className="px-4 pb-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-700 border border-slate-100">{record.msbComments}</div>
-            </div>
-          )}
-        </div>
-
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <SH title="Consumer and Sub Mains" colour="bg-[#1e4080]" />
           <div className="p-3"><CircuitGrid rows={mainsRows} onChange={() => {}} readOnly /></div>
         </div>
-
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <SH title="Final Sub Circuits" colour="bg-[#1a3a6b]" />
           <div className="p-3"><CircuitGrid rows={subRows} onChange={() => {}} readOnly /></div>
         </div>
-
-        <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-          <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Notes & Standards References</h3>
-          <div className="text-xs text-slate-500 space-y-1.5 leading-relaxed">
-            <p>* <strong>Protective device types:</strong> Rewireable fuse = rf, HRC fuse = hrc, Circuit breaker = c/b B, C or D, MCB/RCD combo = rcd, Isolator = Isol.</p>
-            <p>* <strong>PSC</strong> = Prospective Short-circuit current in kA. Ref: AS/NZS 3000:2018 clause 2.6.</p>
-            <p>* <strong>CCC</strong> = Current Carrying Capacity after derating in A. Ref: AS/NZS 3000:2018 clause 3.4.</p>
-            <p>* <strong>Za</strong> = Impedance of earth fault loop. <strong>Rphe</strong> = Resistance of phase and earth conductors. Ref: AS/NZS 3000:2018 clause 8.3.4.</p>
-            <p>Mandatory testing shall be carried out in accordance with <strong>AS/NZS 3000:2018</strong> clause 8.3.</p>
-          </div>
-        </div>
-
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <SH title="Declaration" colour="bg-slate-700" />
           <div className="p-5 space-y-3">
@@ -232,7 +161,6 @@ export default function RecordView({ shareMode = false }) {
             )}
           </div>
         </div>
-
         <div className="flex justify-between items-center pb-8 no-print">
           {!shareMode && (
             <button onClick={() => navigate('/dashboard')} className="text-slate-400 hover:text-slate-600 text-sm flex items-center gap-1">
@@ -249,10 +177,6 @@ export default function RecordView({ shareMode = false }) {
               </button>
             )}
           </div>
-        </div>
-
-        <div className="text-center text-xs text-slate-400 py-2 print-only">
-          Generated by AS/NZS Test Results Manager · {new Date().toLocaleDateString('en-AU')}
         </div>
       </div>
     </div>

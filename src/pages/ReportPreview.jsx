@@ -57,8 +57,8 @@ function PF({ record, pageLabel }) {
 function PassBadge({ value }) {
   if (!value) return null;
   const v = String(value).toLowerCase();
-  if (v === 'pass' || v === 'yes' || v === '✓ pass') return <span style={{ fontSize: '8px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 7px', borderRadius: '3px' }}>✓ {v === 'yes' ? 'Yes' : 'Pass'}</span>;
-  if (v === 'fail' || v === 'no' || v === '✗ fail') return <span style={{ fontSize: '8px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '2px 7px', borderRadius: '3px' }}>✗ {v === 'no' ? 'No' : 'Fail'}</span>;
+  if (v === 'pass' || v === 'yes') return <span style={{ fontSize: '8px', fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 7px', borderRadius: '3px' }}>✓ {v === 'yes' ? 'Yes' : 'Pass'}</span>;
+  if (v === 'fail' || v === 'no') return <span style={{ fontSize: '8px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '2px 7px', borderRadius: '3px' }}>✗ {v === 'no' ? 'No' : 'Fail'}</span>;
   return <span style={{ fontSize: '9px', color: '#1c1917' }}>{value}</span>;
 }
 
