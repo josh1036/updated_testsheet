@@ -41,7 +41,7 @@ const PW = 794;
 const PH = 1123;
 const BLEED_H = 3;
 const FOOTER_H = 36;
-const HEADER_H = 52;   /* compact repeating header */
+const HEADER_H = 88;   /* full branded header: logo bar (44px) + gradient banner (44px) */
 const HERO_H   = 185;  /* page-1 full hero block */
 
 const PAGE_STYLE = {
@@ -63,20 +63,37 @@ function BleedLine() {
 
 function PageHeader({ record }) {
   return (
-    <div style={{ height: `${HEADER_H}px`, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T}`, background: '#fff', flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {record.companyLogoUrl
-          ? <img src={record.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '30px', maxWidth: '100px', objectFit: 'contain' }} />
-          : <div style={{ width: '30px', height: '30px', background: T, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '16px' }}>⚡</div>
-        }
-        <div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
-          <div style={{ fontSize: '8px', color: '#64748b', fontFamily: SANS }}>Licensed Electrical Contractor</div>
+    <div style={{ flexShrink: 0 }}>
+      {/* Logo + title bar */}
+      <div style={{ height: '44px', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {record.companyLogoUrl
+            ? <img src={record.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '28px', maxWidth: '90px', objectFit: 'contain' }} />
+            : <div style={{ width: '28px', height: '28px', background: T, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '14px' }}>⚡</div>
+          }
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
+            <div style={{ fontSize: '8px', color: '#64748b', fontFamily: SANS }}>
+              {[record.companyAbn && `ABN: ${record.companyAbn}`, record.companyPhone].filter(Boolean).join(' · ') || 'Licensed Electrical Contractor'}
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
+          <div style={{ fontSize: '7.5px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
         </div>
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '9.5px', fontWeight: 700, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
-        <div style={{ fontSize: '7.5px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
+      {/* Gradient banner */}
+      <div style={{ height: '44px', background: `linear-gradient(135deg, ${T} 0%, #1e3a6e 60%, #1d4ed8 100%)`, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>Schedule of Test Results</div>
+          <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: '2px', fontFamily: MONO }}>
+            {record.addressLocation || record.companyName || ''}{record.switchboardNo ? ` · ${record.switchboardNo}` : ''}{record.date ? ` · ${record.date}` : ''}
+          </div>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '5px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+          <span style={{ fontSize: '8px', fontWeight: 700, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase' }}>AS/NZS 3000:2018</span>
+        </div>
       </div>
     </div>
   );

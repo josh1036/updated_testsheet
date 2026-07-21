@@ -5,8 +5,7 @@
  * - Every page is EXACTLY 794×1123px (A4 at 96dpi, 2× scale = 1588×2246px canvas)
  * - overflow: hidden on every page — nothing bleeds past the boundary
  * - Page 1: full hero header + summary strip + details + tool + rows
- * - Continuation pages: compact 48px header + bleed line + rows
- * - Final page: compact header + declaration + signature
+ * - ALL subsequent pages: full branded header (logo bar + gradient banner)
  * - Every page has a 3px coloured bleed line at top and a footer bar at bottom
  */
 
@@ -33,9 +32,9 @@ const SECTION_HEAD_H = 36; // CBSHead
 /* Fixed chrome heights (px) */
 const BLEED_H = 3;
 const FOOTER_H = 36;
-const COMPACT_HEADER_H = 48;
-const FULL_HEADER_H = 200; // hero + strip (approx)
-const PADDING_V = 20;      // top+bottom padding inside content area
+const FULL_HEADER_H = 200;  // page 1: hero + summary strip (approx)
+const CONT_HEADER_H = 88;   // continuation pages: logo bar (44px) + gradient banner (44px)
+const PADDING_V = 20;       // top+bottom padding inside content area
 
 const MONO = "'JetBrains Mono', 'Courier New', monospace";
 const SANS = "'Inter', system-ui, -apple-system, sans-serif";
@@ -59,32 +58,40 @@ function BleedLine() {
   return <div style={{ width: '100%', height: `${BLEED_H}px`, background: `linear-gradient(90deg, ${T} 0%, #1d4ed8 60%, #3b82f6 100%)`, flexShrink: 0 }} />;
 }
 
-/* ── Compact page header (continuation + declaration pages) ── */
-function CompactHeader({ r }) {
+/* ── Full branded header (used on ALL continuation + declaration pages) ── */
+function FullBrandedHeader({ r }) {
   return (
-    <div style={{
-      height: `${COMPACT_HEADER_H}px`,
-      padding: '0 24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      borderBottom: '1px solid #e2e8f0',
-      background: '#fff',
-      flexShrink: 0,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {r.companyLogoUrl
-          ? <img src={r.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '28px', maxWidth: '90px', objectFit: 'contain' }} />
-          : <div style={{ width: '28px', height: '28px', background: T, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px' }}>⚡</div>
-        }
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: T }}>{r.companyName || 'Electrical Contractor'}</div>
-          <div style={{ fontSize: '8px', color: '#94a3b8' }}>Licensed Electrical Contractor</div>
+    <div style={{ flexShrink: 0 }}>
+      {/* Logo + title bar */}
+      <div style={{ height: '44px', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {r.companyLogoUrl
+            ? <img src={r.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '28px', maxWidth: '90px', objectFit: 'contain' }} />
+            : <div style={{ width: '28px', height: '28px', background: T, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '14px' }}>⚡</div>
+          }
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{r.companyName || 'Electrical Contractor'}</div>
+            <div style={{ fontSize: '8px', color: '#64748b', fontFamily: SANS }}>
+              {[r.companyAbn && `ABN: ${r.companyAbn}`, r.companyPhone].filter(Boolean).join(' · ') || 'Licensed Electrical Contractor'}
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Termination Torque Certificate</div>
+          <div style={{ fontSize: '7.5px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 5.4.2 · Manufacturer Specifications</div>
         </div>
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '9px', fontWeight: 800, color: T, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Torque Verification Certificate</div>
-        <div style={{ fontSize: '7.5px', color: '#94a3b8', fontFamily: MONO }}>AS/NZS 3000:2018 · Clause 6.1 · AS/NZS 3017</div>
+      {/* Gradient banner */}
+      <div style={{ height: '44px', background: `linear-gradient(135deg, ${T} 0%, #1e3a6e 60%, #1d4ed8 100%)`, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>Termination Torque Certificate</div>
+          <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.55)', marginTop: '2px', fontFamily: MONO }}>
+            {r.projectName || ''}{r.switchboardId ? ` · ${r.switchboardId}` : ''}{r.verificationDate ? ` · ${r.verificationDate}` : ''}
+          </div>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '5px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+          <span style={{ fontSize: '8px', fontWeight: 700, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase' }}>AS/NZS 3000:2018</span>
+        </div>
       </div>
     </div>
   );
@@ -216,7 +223,7 @@ export default function TorqueReportContent({ record }) {
    * Each page also needs: SHead (36) + legend (28 on p1 only) + table head (34)
    */
   const P1_CONTENT = PH - BLEED_H - FOOTER_H - FULL_HEADER_H - PADDING_V;
-  const CONT_CONTENT = PH - BLEED_H - FOOTER_H - COMPACT_HEADER_H - PADDING_V;
+  const CONT_CONTENT = PH - BLEED_H - FOOTER_H - CONT_HEADER_H - PADDING_V;
 
   /* Page 1: subtract fixed chrome within content area */
   /* Fixed items on p1: project section head + tool section head + table section head + legend + table head */
@@ -364,7 +371,7 @@ export default function TorqueReportContent({ record }) {
       {continuationChunks.map((chunk, ci) => (
         <div key={ci} className="report-page" style={PAGE}>
           <BleedLine />
-          <CompactHeader r={r} />
+          <FullBrandedHeader r={r} />
           <div style={{ flex: 1, padding: '0 24px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <SHead title={`Termination Verification Records (continued) — Page ${2 + ci}`} />
             <TermTable rows={chunk} units={units} showLegend={false} startIndex={ROWS_ON_P1 + ci * ROWS_PER_CONT} />
@@ -378,7 +385,7 @@ export default function TorqueReportContent({ record }) {
           ══════════════════════════════════════════════ */}
       <div className="report-page" style={PAGE}>
         <BleedLine />
-        <CompactHeader r={r} />
+        <FullBrandedHeader r={r} />
         <div style={{ flex: 1, padding: '0 24px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <SHead title="Declaration & Sign-Off" />
 
