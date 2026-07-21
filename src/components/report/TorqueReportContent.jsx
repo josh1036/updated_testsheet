@@ -50,7 +50,7 @@ function CBHeader({ r }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {r.companyLogoUrl
-          ? <img src={r.companyLogoUrl} alt="Logo" style={{ height: '32px', maxWidth: '110px', objectFit: 'contain' }} />
+          ? <img src={r.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '32px', maxWidth: '110px', objectFit: 'contain' }} />
           : (
             <div style={{ width: '34px', height: '34px', background: T, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', flexShrink: 0 }}>⚡</div>
           )
@@ -417,9 +417,9 @@ export default function TorqueReportContent({ record }) {
                 <span style={{ fontSize: '8px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Technician Signature</span>
               </div>
               <div style={{ padding: '10px 12px' }}>
-                {r.signatureData
+                {(r.technicianSignature || r.signatureData)
                   ? <div>
-                      <img src={r.signatureData} alt="Signature" style={{ height: '60px', maxWidth: '100%', objectFit: 'contain' }} />
+                      <img src={r.technicianSignature || r.signatureData} alt="Signature" crossOrigin="anonymous" style={{ height: '60px', maxWidth: '100%', objectFit: 'contain' }} />
                       <div style={{ width: '100%', height: '1px', background: '#e2e8f0', marginTop: '6px' }} />
                     </div>
                   : <div style={{ height: '60px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'flex-end' }}>

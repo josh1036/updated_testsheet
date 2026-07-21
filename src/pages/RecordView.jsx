@@ -6,7 +6,7 @@ import PdfActionModal from '../components/PdfActionModal';
 import { buildTestRecordFilename, elementToPdfBlob } from '../lib/pdfUtils';
 import { ArrowLeft, Printer, Edit, Zap, CheckCircle2, Clock, Loader2, Download } from 'lucide-react';
 
-/* ── Tailwind helpers used only in the on-screen view (not in PDF target) ── */
+/* ── Screen-only helpers (Tailwind is fine here) ── */
 function Row({ label, value }) {
   return (
     <tr className="border-b border-slate-100">
@@ -15,7 +15,6 @@ function Row({ label, value }) {
     </tr>
   );
 }
-
 function SH({ title, colour }) {
   return <div className={`${colour} text-white px-4 py-2.5 font-bold text-sm uppercase tracking-wider`}>{title}</div>;
 }
@@ -28,133 +27,346 @@ const emptyRow = () => ({
   circuitLength: '', clearInterconnect: '', comments: '',
 });
 
-/* ─────────────────────────────────────────────────────────────────────────
- * PdfBody — pure inline-style component used as the hidden PDF render target.
- * html2canvas requires inline styles; Tailwind classes are not reliably
- * resolved when the element is off-screen / opacity:0.
- * ───────────────────────────────────────────────────────────────────────── */
-function PdfBody({ record, mainsRows, subRows }) {
-  const hasCompanyBranding = record.companyName || record.companyAbn || record.companyPhone || record.companyLogoUrl;
-  const S = {
-    wrap: { fontFamily: "'Inter', system-ui, sans-serif", background: '#f8fafc', padding: '24px', width: '100%', boxSizing: 'border-box' },
-    gap: { marginBottom: '16px' },
-    /* Company branding card */
-    brandCard: { background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' },
-    brandLogo: { height: '64px', maxWidth: '160px', objectFit: 'contain' },
-    brandName: { fontWeight: 700, color: '#0f2044', fontSize: '18px' },
-    brandSub: { fontSize: '14px', color: '#64748b', marginTop: '2px' },
-    /* Header banner */
-    banner: { background: 'linear-gradient(135deg, #0f2044 0%, #1e4080 100%)', color: 'white', borderRadius: '12px', padding: '24px', marginBottom: '16px' },
-    bannerTitle: { fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em', margin: 0 },
-    bannerSub: { fontSize: '12px', color: '#bfdbfe', marginTop: '4px' },
-    bannerSigLabel: { fontSize: '10px', color: '#93c5fd', marginTop: '16px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 },
-    bannerSig: { height: '48px', background: 'white', borderRadius: '8px', padding: '4px 8px' },
-    /* Section cards */
-    card: { background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: '16px' },
-    cardHead: (bg) => ({ background: bg, color: 'white', padding: '10px 16px', fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }),
-    cardBody: { padding: '16px' },
-    cardBodySm: { padding: '12px' },
-    /* Details grid */
-    detailsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' },
-    detailTable: { width: '100%', borderCollapse: 'collapse' },
-    detailTd: { padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: '#1e293b' },
-    detailLabel: { padding: '6px 16px 6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', width: '160px' },
-    /* Declaration */
-    declText: { fontSize: '12px', color: '#475569', lineHeight: 1.7, marginBottom: '12px' },
-    sigLabel: { fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '4px' },
-    sigImg: { height: '64px', border: '1px solid #e2e8f0', borderRadius: '8px' },
-    notesBox: { background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '12px 14px', marginTop: '12px' },
-    notesLabel: { fontSize: '10px', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' },
-    notesText: { fontSize: '12px', color: '#1c1917', lineHeight: 1.7 },
-  };
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PdfBody — pure inline-style PDF render target.
+ * html2canvas CANNOT resolve Tailwind classes on off-screen elements.
+ * Everything here uses style={{}} props only.
+ * Mirrors the on-screen view: same sections, same data, same colours.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+const T = '#0f2044';
+const SANS = "'Inter', system-ui, -apple-system, sans-serif";
+const MONO = "'JetBrains Mono', 'Courier New', monospace";
 
+/* Shared inline-style primitives */
+const card = { background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: '14px' };
+const cardHead = (bg) => ({ background: bg, color: 'white', padding: '9px 16px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: SANS });
+const cardBody = { padding: '14px 16px' };
+const labelCell = { padding: '5px 14px 5px 0', fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', width: '150px', borderBottom: '1px solid #f1f5f9', fontFamily: SANS };
+const valueCell = { padding: '5px 0', fontSize: '12px', color: '#1e293b', borderBottom: '1px solid #f1f5f9', fontFamily: SANS };
+const divider = { height: '1px', background: '#e2e8f0', margin: '10px 0' };
+
+function PdfRow({ label, value }) {
   return (
-    <div style={S.wrap}>
-      {/* Company branding */}
-      {hasCompanyBranding && (
-        <div style={S.brandCard}>
-          {record.companyLogoUrl && <img src={record.companyLogoUrl} alt="Company logo" style={S.brandLogo} />}
-          <div>
-            {record.companyName && <div style={S.brandName}>{record.companyName}</div>}
-            {record.companyAbn && <div style={S.brandSub}>ABN: {record.companyAbn}</div>}
-            {record.companyPhone && <div style={S.brandSub}>{record.companyPhone}</div>}
-            {record.companyAddress && <div style={S.brandSub}>{record.companyAddress}</div>}
-          </div>
-        </div>
-      )}
+    <tr>
+      <td style={labelCell}>{label}</td>
+      <td style={valueCell}>{value || '—'}</td>
+    </tr>
+  );
+}
 
-      {/* Header banner */}
-      <div style={S.banner}>
-        <h1 style={S.bannerTitle}>Schedule of Test Results</h1>
-        <p style={S.bannerSub}>Mandatory testing in accordance with AS/NZS 3000:2018 clause 8.3</p>
-        {record.signatureData && (
-          <div>
-            <p style={S.bannerSigLabel}>Digital Signature</p>
-            <img src={record.signatureData} alt="Signature" style={S.bannerSig} />
-          </div>
-        )}
-      </div>
-
-      {/* Contractor & Job Details */}
-      <div style={S.card}>
-        <div style={S.cardHead('#0f2044')}>Contractor &amp; Job Details</div>
-        <div style={{ ...S.cardBody, ...S.detailsGrid }}>
-          <table style={S.detailTable}><tbody>
-            {[['Address / Location', record.addressLocation], ['Date', record.date], ['Switchboard No.', record.switchboardNumber], ['Contractor Name', record.contractorName]].map(([l, v]) => (
-              <tr key={l}><td style={S.detailLabel}>{l}</td><td style={S.detailTd}>{v || '—'}</td></tr>
-            ))}
-          </tbody></table>
-          <table style={S.detailTable}><tbody>
-            {[['Contractor Number', record.contractorNumber], ['Worker Name', record.workerName], ['Licence Number', record.licenceNumber], ['Client Email', record.clientEmail]].map(([l, v]) => (
-              <tr key={l}><td style={S.detailLabel}>{l}</td><td style={S.detailTd}>{v || '—'}</td></tr>
-            ))}
-          </tbody></table>
+/* Page header — appears at top of every page */
+function PdfHeader({ record }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '14px 20px', borderBottom: `3px solid ${T}`,
+      background: 'white',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {record.companyLogoUrl
+          ? <img src={record.companyLogoUrl} alt="Company logo" style={{ height: '36px', maxWidth: '120px', objectFit: 'contain' }} crossOrigin="anonymous" />
+          : <div style={{ width: '36px', height: '36px', background: T, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '18px', flexShrink: 0 }}>⚡</div>
+        }
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
+          <div style={{ fontSize: '9px', color: '#64748b', fontFamily: SANS }}>Licensed Electrical Contractor</div>
         </div>
       </div>
-
-      {/* Consumer and Sub Mains */}
-      <div style={S.card}>
-        <div style={S.cardHead('#1e4080')}>Consumer and Sub Mains</div>
-        <div style={S.cardBodySm}><CircuitGrid rows={mainsRows} onChange={() => {}} readOnly /></div>
-      </div>
-
-      {/* Final Sub Circuits */}
-      <div style={S.card}>
-        <div style={S.cardHead('#1a3a6b')}>Final Sub Circuits</div>
-        <div style={S.cardBodySm}><CircuitGrid rows={subRows} onChange={() => {}} readOnly /></div>
-      </div>
-
-      {/* Declaration */}
-      <div style={S.card}>
-        <div style={S.cardHead('#475569')}>Declaration</div>
-        <div style={S.cardBody}>
-          <p style={S.declText}>
-            I declare that the electrical installation described above has been tested in accordance with
-            AS/NZS 3000:2018 and AS/NZS 3017 and the results are as recorded above.
-          </p>
-          {record.signatureData && (
-            <div style={{ marginBottom: '12px' }}>
-              <p style={S.sigLabel}>Signature</p>
-              <img src={record.signatureData} alt="Signature" style={S.sigImg} />
-            </div>
-          )}
-          <table style={{ ...S.detailTable, maxWidth: '320px' }}><tbody>
-            {[['Name', record.workerName], ['Licence No.', record.licenceNumber]].map(([l, v]) => (
-              <tr key={l}><td style={S.detailLabel}>{l}</td><td style={S.detailTd}>{v || '—'}</td></tr>
-            ))}
-          </tbody></table>
-          {record.notes && (
-            <div style={S.notesBox}>
-              <div style={S.notesLabel}>Notes / Defects</div>
-              <p style={S.notesText}>{record.notes}</p>
-            </div>
-          )}
-        </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
+        <div style={{ fontSize: '8px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
       </div>
     </div>
   );
 }
 
+/* Page footer */
+function PdfFooter({ record, pageLabel }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '8px 20px', borderTop: '1px solid #e2e8f0',
+      background: '#f8fafc', marginTop: 'auto',
+    }}>
+      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
+        {record.companyName || 'TestSheet'} · testsheet.com.au
+      </div>
+      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
+        AS/NZS 3000:2018 · AS/NZS 3008.1.1 · AS/NZS 3017 — Generated {new Date().toLocaleDateString('en-AU')}
+      </div>
+      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>{pageLabel}</div>
+    </div>
+  );
+}
+
+function PdfBody({ record, mainsRows, subRows }) {
+  const isComplete = record.status === 'Complete';
+  const statusBg = isComplete ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)';
+  const statusColor = isComplete ? '#16a34a' : '#d97706';
+  const statusLabel = record.status || 'Draft';
+
+  /* Collect test equipment rows */
+  const testEquip = [
+    { type: record.testEquip1Type, serial: record.testEquip1Serial, cal: record.testEquip1CalDate },
+    { type: record.testEquip2Type, serial: record.testEquip2Serial, cal: record.testEquip2CalDate },
+    { type: record.testEquip3Type, serial: record.testEquip3Serial, cal: record.testEquip3CalDate },
+    { type: record.testEquip4Type, serial: record.testEquip4Serial, cal: record.testEquip4CalDate },
+  ].filter(e => e.type);
+
+  const PAGE = {
+    width: '210mm',
+    boxSizing: 'border-box',
+    fontFamily: SANS,
+    background: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '297mm',
+  };
+
+  return (
+    <div style={{ fontFamily: SANS, background: '#f8fafc' }}>
+
+      {/* ── PAGE 1: Cover + Project Details ── */}
+      <div className="report-page" style={PAGE}>
+        <PdfHeader record={record} />
+
+        {/* Hero banner */}
+        <div style={{
+          background: `linear-gradient(135deg, ${T} 0%, #1e3a6e 60%, #1d4ed8 100%)`,
+          padding: '28px 20px 24px 20px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', right: '-10px', top: '50%', transform: 'translateY(-50%)', fontSize: '72px', fontWeight: 900, color: 'rgba(255,255,255,0.04)', letterSpacing: '-0.04em', whiteSpace: 'nowrap', userSelect: 'none' }}>TESTSHEET</div>
+          <div style={{ fontSize: '8px', fontWeight: 600, color: '#93c5fd', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '8px', fontFamily: SANS }}>Client Deliverable · Electrical Compliance</div>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.03em', margin: '0 0 6px 0', fontFamily: SANS }}>
+            Schedule of<br /><span style={{ color: '#60a5fa' }}>Test Results</span>
+          </h1>
+          {(record.addressLocation || record.contractorName) && (
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '14px', fontFamily: SANS }}>
+              {[record.addressLocation, record.contractorName].filter(Boolean).join(' — ')}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '6px', background: statusBg, border: `1px solid ${statusColor}40` }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor }} />
+              <span style={{ fontSize: '9px', fontWeight: 700, color: statusColor, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: SANS }}>{statusLabel}</span>
+            </div>
+            {record.date && <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: MONO }}>{record.date}</span>}
+          </div>
+        </div>
+
+        {/* Project & Contractor Details */}
+        <div style={{ padding: '16px 20px', flex: 1 }}>
+          <div style={card}>
+            <div style={cardHead(T)}>Project &amp; Contractor Details</div>
+            <div style={{ ...cardBody, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                <PdfRow label="Address / Location" value={record.addressLocation} />
+                <PdfRow label="Date" value={record.date} />
+                <PdfRow label="Switchboard No." value={record.switchboardNumber} />
+                <PdfRow label="Contractor Name" value={record.contractorName} />
+              </tbody></table>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                <PdfRow label="Contractor Number" value={record.contractorNumber} />
+                <PdfRow label="Worker Name" value={record.workerName} />
+                <PdfRow label="Licence Number" value={record.licenceNumber} />
+                <PdfRow label="Client" value={record.clientEmail} />
+              </tbody></table>
+            </div>
+          </div>
+
+          {/* Company Branding (if present) */}
+          {(record.companyAbn || record.companyPhone || record.companyAddress) && (
+            <div style={card}>
+              <div style={cardHead('#334155')}>Company Details</div>
+              <div style={cardBody}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  {record.companyAbn && <PdfRow label="ABN" value={record.companyAbn} />}
+                  {record.companyPhone && <PdfRow label="Phone" value={record.companyPhone} />}
+                  {record.companyAddress && <PdfRow label="Address" value={record.companyAddress} />}
+                </tbody></table>
+              </div>
+            </div>
+          )}
+
+          {/* MSB / Main Switch Details */}
+          {(record.msbMaxDemand || record.msbMainSwitchCurrentRating || record.pscAtMainSwitch) && (
+            <div style={card}>
+              <div style={cardHead('#1e4080')}>Main Switchboard (MSB) Details</div>
+              <div style={{ ...cardBody, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  <PdfRow label="Max Demand (A)" value={record.msbMaxDemand} />
+                  <PdfRow label="Main Switch Rating (A)" value={record.msbMainSwitchCurrentRating} />
+                  <PdfRow label="Main Switch PSC (kA)" value={record.msbMainSwitchPscRating} />
+                  <PdfRow label="PSC at Main Switch" value={record.pscAtMainSwitch} />
+                </tbody></table>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  <PdfRow label="Conductor CCC (A)" value={record.msbConductorCcc} />
+                  <PdfRow label="Conductor Size (mm²)" value={record.msbConductorSize} />
+                  <PdfRow label="Earth Cont. Main (Ω)" value={record.msbEarthContMain} />
+                  <PdfRow label="Earth Cont. Eq. (Ω)" value={record.msbEarthContEq} />
+                </tbody></table>
+              </div>
+              {(record.msbInsResAE || record.msbInsResAN || record.msbInsResNE) && (
+                <div style={{ ...cardBody, borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', fontFamily: SANS }}>Insulation Resistance (MΩ)</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    {[['A–E', record.msbInsResAE], ['A–N', record.msbInsResAN], ['N–E', record.msbInsResNE], ['PP', record.msbInsResPP]].map(([l, v]) => v ? (
+                      <div key={l} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', fontFamily: SANS }}>{l}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: T, fontFamily: MONO }}>{v}</div>
+                      </div>
+                    ) : null)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Test Equipment */}
+          {testEquip.length > 0 && (
+            <div style={card}>
+              <div style={cardHead('#475569')}>Test Equipment &amp; Calibration</div>
+              <div style={cardBody}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc' }}>
+                      {['Instrument Type', 'Serial Number', 'Cal. Due Date'].map(h => (
+                        <th key={h} style={{ padding: '6px 10px', fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left', borderBottom: '2px solid #e2e8f0', fontFamily: SANS }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testEquip.map((e, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: SANS }}>{e.type || '—'}</td>
+                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: MONO }}>{e.serial || '—'}</td>
+                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: SANS }}>{e.cal || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <PdfFooter record={record} pageLabel="Page 1" />
+      </div>
+
+      {/* ── PAGE 2: Circuit Test Results ── */}
+      <div className="report-page" style={PAGE}>
+        <PdfHeader record={record} />
+        <div style={{ padding: '16px 20px', flex: 1 }}>
+          {/* Consumer and Sub Mains */}
+          <div style={card}>
+            <div style={cardHead('#1e4080')}>Consumer and Sub Mains</div>
+            <div style={{ padding: '8px' }}>
+              <CircuitGrid rows={mainsRows} onChange={() => {}} readOnly />
+            </div>
+          </div>
+
+          {/* Final Sub Circuits */}
+          <div style={card}>
+            <div style={cardHead('#1a3a6b')}>Final Sub Circuits</div>
+            <div style={{ padding: '8px' }}>
+              <CircuitGrid rows={subRows} onChange={() => {}} readOnly />
+            </div>
+          </div>
+        </div>
+        <PdfFooter record={record} pageLabel="Page 2" />
+      </div>
+
+      {/* ── PAGE 3: Declaration & Sign-Off ── */}
+      <div className="report-page" style={PAGE}>
+        <PdfHeader record={record} />
+        <div style={{ padding: '16px 20px', flex: 1 }}>
+
+          {/* Declaration box */}
+          <div style={{ background: '#dbeafe', border: `1px solid ${T}`, borderLeft: `4px solid ${T}`, borderRadius: '8px', padding: '14px 16px', marginBottom: '16px' }}>
+            <p style={{ fontSize: '11px', color: '#1c1917', lineHeight: 1.8, margin: 0, fontFamily: SANS }}>
+              I declare that the electrical installation described in this report has been tested in accordance with AS/NZS 3000:2018 and AS/NZS 3017, and that the results are as recorded above. The installation has been inspected and found to comply with the requirements of AS/NZS 3000:2018 to the best of my knowledge and belief.
+            </p>
+          </div>
+
+          {/* Signature + Verification details */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+            {/* Signature card */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Registered Electrical Worker</span>
+              </div>
+              <div style={{ padding: '12px' }}>
+                {record.signatureData
+                  ? <div style={{ marginBottom: '10px' }}>
+                      <img src={record.signatureData} alt="Signature" style={{ height: '56px', maxWidth: '100%', objectFit: 'contain' }} />
+                      <div style={divider} />
+                      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>Authorised Signature</div>
+                    </div>
+                  : <div style={{ height: '56px', borderBottom: '2px solid #e2e8f0', marginBottom: '8px', display: 'flex', alignItems: 'flex-end' }}>
+                      <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: SANS }}>Authorised Signature</div>
+                    </div>
+                }
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  <PdfRow label="Name" value={record.workerName} />
+                  <PdfRow label="Licence No." value={record.licenceNumber} />
+                  <PdfRow label="Date" value={record.date} />
+                </tbody></table>
+              </div>
+            </div>
+
+            {/* Verification checklist */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Verification Checklist</span>
+              </div>
+              <div style={{ padding: '12px' }}>
+                {[
+                  ['Live Parts Screened', record.livePartsScreened],
+                  ['Main Link / Neutral Reconnected', record.mainLinkNeutralReconnected],
+                  ['MEN Compliant', record.msbMenCompliant],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '11px', color: '#475569', fontFamily: SANS }}>{label}</span>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                      background: val === true || val === 'Yes' ? '#dcfce7' : val === false || val === 'No' ? '#fee2e2' : '#f1f5f9',
+                      color: val === true || val === 'Yes' ? '#16a34a' : val === false || val === 'No' ? '#dc2626' : '#64748b',
+                      fontFamily: SANS,
+                    }}>
+                      {val === true || val === 'Yes' ? '✓ Yes' : val === false || val === 'No' ? '✗ No' : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Notes / Defects */}
+          {record.notes && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '9px', fontWeight: 800, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px', fontFamily: SANS }}>Notes / Defects</div>
+              <p style={{ fontSize: '11px', color: '#1c1917', lineHeight: 1.7, margin: 0, fontFamily: SANS }}>{record.notes}</p>
+            </div>
+          )}
+
+          {/* Standards footer note */}
+          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+            <p style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
+              This document has been prepared in accordance with AS/NZS 3000:2018 Wiring Rules, AS/NZS 3008.1.1 Selection of Cables, and AS/NZS 3017 Electrical Installations — Verification Guidelines. Results are valid at the time of testing only.
+            </p>
+          </div>
+        </div>
+        <PdfFooter record={record} pageLabel="Page 3 of 3" />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * RecordView — main page component
+ * ═══════════════════════════════════════════════════════════════════════════ */
 export default function RecordView({ shareMode = false }) {
   const params = useParams();
   const navigate = useNavigate();
@@ -196,11 +408,7 @@ export default function RecordView({ shareMode = false }) {
   if (!record) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
       <p className="text-slate-500">Record not found or access denied.</p>
-      {!shareMode && (
-        <button onClick={() => navigate('/dashboard')} className="bg-[#0f2044] text-white px-4 py-2 rounded-xl text-sm">
-          Back to Dashboard
-        </button>
-      )}
+      {!shareMode && <button onClick={() => navigate('/dashboard')} className="bg-[#0f2044] text-white px-4 py-2 rounded-xl text-sm">Back to Dashboard</button>}
     </div>
   );
 
@@ -211,7 +419,7 @@ export default function RecordView({ shareMode = false }) {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* Sticky top nav bar */}
+      {/* Sticky top nav */}
       <div className="bg-white border-b border-slate-100 sticky top-0 z-40 no-print">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -245,18 +453,13 @@ export default function RecordView({ shareMode = false }) {
         </div>
       </div>
 
-      {/*
-        Hidden off-screen render target for PDF generation.
-        Uses PdfBody with PURE INLINE STYLES — html2canvas requires this.
-        Tailwind classes are not reliably resolved on off-screen elements.
-        The design mirrors the on-screen view exactly.
-      */}
+      {/* Hidden PDF render target — pdfUtils.js makes this visible before capture */}
       <div
         ref={reportRef}
         style={{
-          position: 'fixed', top: 0, left: 0,
+          position: 'fixed', top: 0, left: '-9999px',
           width: '1000px',
-          visibility: 'hidden', pointerEvents: 'none', zIndex: -1,
+          opacity: 0, pointerEvents: 'none', zIndex: -1,
           overflow: 'visible',
         }}
         aria-hidden="true"
@@ -264,11 +467,11 @@ export default function RecordView({ shareMode = false }) {
         {record && <PdfBody record={record} mainsRows={mainsRows} subRows={subRows} />}
       </div>
 
-      {/* ── Visible on-screen record content (uses Tailwind — fine for screen) ── */}
+      {/* ── Visible on-screen content (Tailwind is fine here) ── */}
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-4 print-page">
         {hasCompanyBranding && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-start gap-4">
-            {record.companyLogoUrl && <img src={record.companyLogoUrl} alt="Company logo" className="h-16 max-w-[160px] object-contain" />}
+            {record.companyLogoUrl && <img src={record.companyLogoUrl} alt="Company logo" className="h-16 max-w-[160px] object-contain" crossOrigin="anonymous" />}
             <div>
               {record.companyName && <div className="font-bold text-[#0f2044] text-lg">{record.companyName}</div>}
               {record.companyAbn && <div className="text-sm text-slate-500">ABN: {record.companyAbn}</div>}
