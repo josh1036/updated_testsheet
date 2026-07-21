@@ -24,7 +24,7 @@ const COLS = [
 ];
 
 export default function MccbSettings({ rows, onChange }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const addRow = () => onChange([...rows, EMPTY_ROW()]);
   const removeRow = (i) => onChange(rows.filter((_, idx) => idx !== i));
   const duplicateRow = (i) => { const next = [...rows]; next.splice(i + 1, 0, { ...rows[i] }); onChange(next); };
