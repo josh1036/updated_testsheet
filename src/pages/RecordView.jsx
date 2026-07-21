@@ -28,84 +28,167 @@ const emptyRow = () => ({
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * PdfBody — pure inline-style PDF render target.
+ * PDF RENDER TARGET — pure inline styles, strict A4 page boundaries
+ * Each page is exactly 794×1123px (A4 at 96dpi).
  * html2canvas CANNOT resolve Tailwind classes on off-screen elements.
- * Everything here uses style={{}} props only.
- * Mirrors the on-screen view: same sections, same data, same colours.
  * ═══════════════════════════════════════════════════════════════════════════ */
 const T = '#0f2044';
-const SANS = "'Inter', system-ui, -apple-system, sans-serif";
-const MONO = "'JetBrains Mono', 'Courier New', monospace";
+const SANS = "\'Inter\', system-ui, -apple-system, sans-serif";
+const MONO = "\'JetBrains Mono\', \'Courier New\', monospace";
 
-/* Shared inline-style primitives */
-const card = { background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: '14px' };
-const cardHead = (bg) => ({ background: bg, color: 'white', padding: '9px 16px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: SANS });
-const cardBody = { padding: '14px 16px' };
-const labelCell = { padding: '5px 14px 5px 0', fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', width: '150px', borderBottom: '1px solid #f1f5f9', fontFamily: SANS };
-const valueCell = { padding: '5px 0', fontSize: '12px', color: '#1e293b', borderBottom: '1px solid #f1f5f9', fontFamily: SANS };
-const divider = { height: '1px', background: '#e2e8f0', margin: '10px 0' };
+/* A4 at 96dpi */
+const PW = 794;
+const PH = 1123;
+const BLEED_H = 3;
+const FOOTER_H = 36;
+const HEADER_H = 52;   /* compact repeating header */
+const HERO_H   = 185;  /* page-1 full hero block */
 
-function PdfRow({ label, value }) {
-  return (
-    <tr>
-      <td style={labelCell}>{label}</td>
-      <td style={valueCell}>{value || '—'}</td>
-    </tr>
-  );
+const PAGE_STYLE = {
+  width: `${PW}px`,
+  height: `${PH}px`,
+  boxSizing: 'border-box',
+  fontFamily: SANS,
+  background: '#fff',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  position: 'relative',
+  flexShrink: 0,
+};
+
+function BleedLine() {
+  return <div style={{ width: '100%', height: `${BLEED_H}px`, background: `linear-gradient(90deg, ${T} 0%, #1e4080 50%, #1d4ed8 100%)`, flexShrink: 0 }} />;
 }
 
-/* Page header — appears at top of every page */
-function PdfHeader({ record }) {
+function PageHeader({ record }) {
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '14px 20px', borderBottom: `3px solid ${T}`,
-      background: 'white',
-    }}>
+    <div style={{ height: `${HEADER_H}px`, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T}`, background: '#fff', flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {record.companyLogoUrl
-          ? <img src={record.companyLogoUrl} alt="Company logo" style={{ height: '36px', maxWidth: '120px', objectFit: 'contain' }} crossOrigin="anonymous" />
-          : <div style={{ width: '36px', height: '36px', background: T, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '18px', flexShrink: 0 }}>⚡</div>
+          ? <img src={record.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '30px', maxWidth: '100px', objectFit: 'contain' }} />
+          : <div style={{ width: '30px', height: '30px', background: T, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '16px' }}>⚡</div>
         }
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
-          <div style={{ fontSize: '9px', color: '#64748b', fontFamily: SANS }}>Licensed Electrical Contractor</div>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
+          <div style={{ fontSize: '8px', color: '#64748b', fontFamily: SANS }}>Licensed Electrical Contractor</div>
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '10px', fontWeight: 700, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
-        <div style={{ fontSize: '8px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
+        <div style={{ fontSize: '9.5px', fontWeight: 700, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
+        <div style={{ fontSize: '7.5px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
       </div>
     </div>
   );
 }
 
-/* Page footer */
-function PdfFooter({ record, pageLabel }) {
+function PageFooter({ record, pageLabel }) {
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '8px 20px', borderTop: '1px solid #e2e8f0',
-      background: '#f8fafc', marginTop: 'auto',
-    }}>
-      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
-        {record.companyName || 'TestSheet'} · testsheet.com.au
-      </div>
-      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
-        AS/NZS 3000:2018 · AS/NZS 3008.1.1 · AS/NZS 3017 — Generated {new Date().toLocaleDateString('en-AU')}
-      </div>
-      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>{pageLabel}</div>
+    <div style={{ height: `${FOOTER_H}px`, padding: '0 20px', borderTop: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', flexShrink: 0 }}>
+      <div style={{ fontSize: '7.5px', color: '#94a3b8', fontFamily: SANS }}>{record.companyName || 'TestSheet'} · testsheet.com.au</div>
+      <div style={{ fontSize: '7.5px', color: '#94a3b8', fontFamily: SANS }}>AS/NZS 3000:2018 · AS/NZS 3008.1.1 · AS/NZS 3017 — Generated {new Date().toLocaleDateString('en-AU')}</div>
+      <div style={{ fontSize: '8px', fontWeight: 700, color: T, background: '#dbeafe', padding: '3px 12px', borderRadius: '4px', fontFamily: SANS }}>{pageLabel}</div>
+    </div>
+  );
+}
+
+function SHead({ title, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', marginTop: '12px', flexShrink: 0 }}>
+      <div style={{ width: '16px', height: '2px', background: color || T, borderRadius: '1px', flexShrink: 0 }} />
+      <span style={{ fontSize: '8px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: SANS }}>{title}</span>
+      <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+    </div>
+  );
+}
+
+function DRow({ label, value }) {
+  return (
+    <tr>
+      <td style={{ padding: '4px 12px 4px 0', fontSize: '8.5px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', width: '140px', borderBottom: '1px solid #f1f5f9', fontFamily: SANS, verticalAlign: 'top' }}>{label}</td>
+      <td style={{ padding: '4px 0', fontSize: '10.5px', color: value ? '#1e293b' : '#cbd5e1', borderBottom: '1px solid #f1f5f9', fontFamily: SANS }}>{value || '—'}</td>
+    </tr>
+  );
+}
+
+/* ── Inline circuit grid (replaces CircuitGrid which uses Tailwind) ── */
+const PHASE_OPTS = [
+  { value: 'L1', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
+  { value: 'L2', color: '#f59e0b', bg: '#fffbeb', border: '#fcd34d' },
+  { value: 'L3', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd' },
+  { value: 'N',  color: '#6b7280', bg: '#f9fafb', border: '#d1d5db' },
+  { value: 'E',  color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+  { value: 'PEN',color: '#15803d', bg: '#f0fdf4', border: '#4ade80' },
+];
+
+function InlineCircuitGrid({ rows }) {
+  const headers = ['#', 'Circuit ID', 'Ph', 'Max D (A)', 'OCPD Type', 'OCPD (A)', 'PSC (kA)', 'CCC (A)', 'Size mm²', 'E-Cont Ω', 'Polarity', 'Ins A-E', 'Ins A-N', 'Ins N-E', 'Ins OK', 'Za/Rphe', 'RCD mA', 'Comments'];
+  return (
+    <div style={{ border: '1px solid #e2e8f0', borderRadius: '7px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', fontFamily: SANS }}>
+        <thead>
+          <tr style={{ background: T }}>
+            {headers.map((h, i) => (
+              <th key={i} style={{ padding: '6px 4px', textAlign: 'center', fontSize: '7px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => {
+            const ph = PHASE_OPTS.find(p => p.value === row.phase || p.value === row.numPhases);
+            const rowBg = idx % 2 === 0 ? '#fff' : '#fafbff';
+            const isEmpty = !row.circuitId && !row.maxDemand && !row.ocpdType;
+            const c = (v) => <span style={{ color: isEmpty || !v ? '#cbd5e1' : '#1e293b', fontFamily: MONO, fontSize: '8px' }}>{v || '—'}</span>;
+            return (
+              <tr key={idx} style={{ background: rowBg, borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, fontFamily: MONO, background: ph ? ph.bg : '#f1f5f9', color: ph ? ph.color : '#94a3b8', border: ph ? `1px solid ${ph.border}` : '1px solid #e2e8f0' }}>{idx + 1}</span>
+                </td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.circuitId)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                  {ph
+                    ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 5px', borderRadius: '3px', background: ph.bg, color: ph.color, border: `1px solid ${ph.border}`, fontWeight: 800, fontSize: '7px' }}>{ph.value}</span>
+                    : <span style={{ color: '#cbd5e1' }}>—</span>
+                  }
+                </td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.maxDemand)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.ocpdType)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.ocpdCurrentRating)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.ocpdPscRating)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.conductorCcc)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.conductorSize)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.earthContMain)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.polarity)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.insResAE)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.insResAN)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.insResNE)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                  {row.insResOk === 'Yes' || row.insResOk === true
+                    ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '8px' }}>✓</span>
+                    : row.insResOk === 'No' || row.insResOk === false
+                    ? <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '8px' }}>✗</span>
+                    : <span style={{ color: '#cbd5e1' }}>—</span>
+                  }
+                </td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.zaRpheActual)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.rcdCurrentTrip)}</td>
+                <td style={{ padding: '5px 4px', textAlign: 'center', maxWidth: '60px' }}>{c(row.comments)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 function PdfBody({ record, mainsRows, subRows }) {
   const isComplete = record.status === 'Complete';
-  const statusBg = isComplete ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)';
-  const statusColor = isComplete ? '#16a34a' : '#d97706';
+  const statusBg    = isComplete ? 'rgba(34,197,94,0.15)'   : 'rgba(245,158,11,0.15)';
+  const statusColor = isComplete ? '#16a34a'                : '#d97706';
   const statusLabel = record.status || 'Draft';
 
-  /* Collect test equipment rows */
+  /* Test equipment rows */
   const testEquip = [
     { type: record.testEquip1Type, serial: record.testEquip1Serial, cal: record.testEquip1CalDate },
     { type: record.testEquip2Type, serial: record.testEquip2Serial, cal: record.testEquip2CalDate },
@@ -113,228 +196,212 @@ function PdfBody({ record, mainsRows, subRows }) {
     { type: record.testEquip4Type, serial: record.testEquip4Serial, cal: record.testEquip4CalDate },
   ].filter(e => e.type);
 
-  const PAGE = {
-    width: '210mm',
-    boxSizing: 'border-box',
-    fontFamily: SANS,
-    background: 'white',
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: '297mm',
-  };
+  /* Content heights for page 1 (px) — used to size the content area */
+  const P1_CONTENT_H = PH - BLEED_H - FOOTER_H - HERO_H;
 
   return (
-    <div style={{ fontFamily: SANS, background: '#f8fafc' }}>
+    <div style={{ fontFamily: SANS, background: '#e5e7eb', display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
 
-      {/* ── PAGE 1: Cover + Project Details ── */}
-      <div className="report-page" style={PAGE}>
-        <PdfHeader record={record} />
+      {/* ══════════════════════════════════════════════
+          PAGE 1: Hero + Project + Company + MSB + Equipment
+          ══════════════════════════════════════════════ */}
+      <div className="report-page" style={PAGE_STYLE}>
+        <BleedLine />
 
-        {/* Hero banner */}
-        <div style={{
-          background: `linear-gradient(135deg, ${T} 0%, #1e3a6e 60%, #1d4ed8 100%)`,
-          padding: '28px 20px 24px 20px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', right: '-10px', top: '50%', transform: 'translateY(-50%)', fontSize: '72px', fontWeight: 900, color: 'rgba(255,255,255,0.04)', letterSpacing: '-0.04em', whiteSpace: 'nowrap', userSelect: 'none' }}>TESTSHEET</div>
-          <div style={{ fontSize: '8px', fontWeight: 600, color: '#93c5fd', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '8px', fontFamily: SANS }}>Client Deliverable · Electrical Compliance</div>
-          <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.03em', margin: '0 0 6px 0', fontFamily: SANS }}>
-            Schedule of<br /><span style={{ color: '#60a5fa' }}>Test Results</span>
-          </h1>
-          {(record.addressLocation || record.contractorName) && (
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '14px', fontFamily: SANS }}>
-              {[record.addressLocation, record.contractorName].filter(Boolean).join(' — ')}
+        {/* Full hero header */}
+        <div style={{ flexShrink: 0 }}>
+          {/* Logo + title bar */}
+          <div style={{ padding: '12px 20px 10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {record.companyLogoUrl
+                ? <img src={record.companyLogoUrl} alt="Logo" crossOrigin="anonymous" style={{ height: '32px', maxWidth: '110px', objectFit: 'contain' }} />
+                : <div style={{ width: '32px', height: '32px', background: T, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', fontSize: '16px' }}>⚡</div>
+              }
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', fontFamily: SANS }}>{record.companyName || 'TestSheet'}</div>
+                <div style={{ fontSize: '8px', color: '#64748b', fontFamily: SANS }}>Licensed Electrical Contractor</div>
+              </div>
             </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '6px', background: statusBg, border: `1px solid ${statusColor}40` }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor }} />
-              <span style={{ fontSize: '9px', fontWeight: 700, color: statusColor, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: SANS }}>{statusLabel}</span>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: T, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: SANS }}>Schedule of Test Results</div>
+              <div style={{ fontSize: '7.5px', color: '#94a3b8', marginTop: '2px', fontFamily: SANS }}>AS/NZS 3000:2018 · Clause 8.3 · AS/NZS 3017</div>
             </div>
-            {record.date && <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: MONO }}>{record.date}</span>}
+          </div>
+          {/* Hero gradient banner */}
+          <div style={{ background: `linear-gradient(135deg, ${T} 0%, #1e3a6e 60%, #1d4ed8 100%)`, padding: '16px 20px 12px 20px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', right: '-10px', top: '50%', transform: 'translateY(-50%)', fontSize: '56px', fontWeight: 900, color: 'rgba(255,255,255,0.04)', letterSpacing: '-0.04em', whiteSpace: 'nowrap', userSelect: 'none' }}>TESTSHEET</div>
+            <div style={{ fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '3px' }}>Client Deliverable · Electrical Compliance</div>
+            <div style={{ fontSize: '19px', fontWeight: 900, color: '#fff', lineHeight: 1.1, marginBottom: '1px' }}>Schedule of Test Results</div>
+            <div style={{ fontSize: '19px', fontWeight: 900, color: '#60a5fa', lineHeight: 1.1, marginBottom: '7px' }}>AS/NZS 3000:2018 Wiring Rules</div>
+            <div style={{ fontSize: '8.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>{record.addressLocation || record.companyName || ''}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '5px', background: statusBg, border: `1px solid ${statusColor}30` }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor }} />
+                <span style={{ fontSize: '8px', fontWeight: 700, color: statusColor, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{statusLabel}</span>
+              </div>
+              {record.date && <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)', fontFamily: MONO }}>{record.date}</span>}
+            </div>
           </div>
         </div>
 
-        {/* Project & Contractor Details */}
-        <div style={{ padding: '16px 20px', flex: 1 }}>
-          <div style={card}>
-            <div style={cardHead(T)}>Project &amp; Contractor Details</div>
-            <div style={{ ...cardBody, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                <PdfRow label="Address / Location" value={record.addressLocation} />
-                <PdfRow label="Date" value={record.date} />
-                <PdfRow label="Switchboard No." value={record.switchboardNumber} />
-                <PdfRow label="Contractor Name" value={record.contractorName} />
-              </tbody></table>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                <PdfRow label="Contractor Number" value={record.contractorNumber} />
-                <PdfRow label="Worker Name" value={record.workerName} />
-                <PdfRow label="Licence Number" value={record.licenceNumber} />
-                <PdfRow label="Client" value={record.clientEmail} />
-              </tbody></table>
-            </div>
+        {/* Content area */}
+        <div style={{ flex: 1, padding: '0 20px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <SHead title="Project & Contractor Details" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px', flexShrink: 0 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+              <DRow label="Contractor" value={record.contractorName} />
+              <DRow label="Licence No." value={record.licenceNumber} />
+              <DRow label="Address" value={record.addressLocation} />
+              <DRow label="Date" value={record.date} />
+              <DRow label="Job No." value={record.jobNumber} />
+            </tbody></table>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+              <DRow label="Consumer" value={record.consumerName} />
+              <DRow label="Supply Address" value={record.supplyAddress} />
+              <DRow label="Earthing System" value={record.earthingSystem} />
+              <DRow label="Wiring System" value={record.wiringSystem} />
+              <DRow label="Status" value={record.status} />
+            </tbody></table>
           </div>
 
-          {/* Company Branding (if present) */}
-          {(record.companyAbn || record.companyPhone || record.companyAddress) && (
-            <div style={card}>
-              <div style={cardHead('#334155')}>Company Details</div>
-              <div style={cardBody}>
+          {(record.companyName || record.companyAbn) && (
+            <>
+              <SHead title="Company Details" color="#334155" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px', flexShrink: 0 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                  {record.companyAbn && <PdfRow label="ABN" value={record.companyAbn} />}
-                  {record.companyPhone && <PdfRow label="Phone" value={record.companyPhone} />}
-                  {record.companyAddress && <PdfRow label="Address" value={record.companyAddress} />}
+                  <DRow label="Company" value={record.companyName} />
+                  <DRow label="ABN" value={record.companyAbn} />
+                </tbody></table>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
+                  <DRow label="Phone" value={record.companyPhone} />
+                  <DRow label="Address" value={record.companyAddress} />
                 </tbody></table>
               </div>
-            </div>
+            </>
           )}
 
-          {/* MSB / Main Switch Details */}
           {(record.msbMaxDemand || record.msbMainSwitchCurrentRating || record.pscAtMainSwitch) && (
-            <div style={card}>
-              <div style={cardHead('#1e4080')}>Main Switchboard (MSB) Details</div>
-              <div style={{ ...cardBody, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+            <>
+              <SHead title="Main Switchboard (MSB) Details" color="#1e4080" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px', flexShrink: 0 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                  <PdfRow label="Max Demand (A)" value={record.msbMaxDemand} />
-                  <PdfRow label="Main Switch Rating (A)" value={record.msbMainSwitchCurrentRating} />
-                  <PdfRow label="Main Switch PSC (kA)" value={record.msbMainSwitchPscRating} />
-                  <PdfRow label="PSC at Main Switch" value={record.pscAtMainSwitch} />
+                  <DRow label="Max Demand (A)" value={record.msbMaxDemand} />
+                  <DRow label="Main Switch (A)" value={record.msbMainSwitchCurrentRating} />
+                  <DRow label="PSC at Main Switch" value={record.pscAtMainSwitch} />
+                  <DRow label="Conductor CCC (A)" value={record.msbConductorCcc} />
                 </tbody></table>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                  <PdfRow label="Conductor CCC (A)" value={record.msbConductorCcc} />
-                  <PdfRow label="Conductor Size (mm²)" value={record.msbConductorSize} />
-                  <PdfRow label="Earth Cont. Main (Ω)" value={record.msbEarthContMain} />
-                  <PdfRow label="Earth Cont. Eq. (Ω)" value={record.msbEarthContEq} />
+                  <DRow label="Conductor Size mm²" value={record.msbConductorSize} />
+                  <DRow label="Earth Cont. Main Ω" value={record.msbEarthContMain} />
+                  <DRow label="Earth Cont. Eq. Ω" value={record.msbEarthContEq} />
+                  <DRow label="Ins Res A-E (MΩ)" value={record.msbInsResAE} />
                 </tbody></table>
               </div>
-              {(record.msbInsResAE || record.msbInsResAN || record.msbInsResNE) && (
-                <div style={{ ...cardBody, borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', fontFamily: SANS }}>Insulation Resistance (MΩ)</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                    {[['A–E', record.msbInsResAE], ['A–N', record.msbInsResAN], ['N–E', record.msbInsResNE], ['PP', record.msbInsResPP]].map(([l, v]) => v ? (
-                      <div key={l} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '9px', color: '#94a3b8', fontFamily: SANS }}>{l}</div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: T, fontFamily: MONO }}>{v}</div>
-                      </div>
-                    ) : null)}
-                  </div>
-                </div>
-              )}
-            </div>
+            </>
           )}
 
-          {/* Test Equipment */}
           {testEquip.length > 0 && (
-            <div style={card}>
-              <div style={cardHead('#475569')}>Test Equipment &amp; Calibration</div>
-              <div style={cardBody}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <>
+              <SHead title="Test Equipment & Calibration" color="#475569" />
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '7px', overflow: 'hidden', flexShrink: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', fontFamily: SANS }}>
                   <thead>
                     <tr style={{ background: '#f8fafc' }}>
                       {['Instrument Type', 'Serial Number', 'Cal. Due Date'].map(h => (
-                        <th key={h} style={{ padding: '6px 10px', fontSize: '9px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left', borderBottom: '2px solid #e2e8f0', fontFamily: SANS }}>{h}</th>
+                        <th key={h} style={{ padding: '6px 10px', fontSize: '8px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'left', borderBottom: '2px solid #e2e8f0', fontFamily: SANS }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {testEquip.map((e, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: SANS }}>{e.type || '—'}</td>
-                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: MONO }}>{e.serial || '—'}</td>
-                        <td style={{ padding: '7px 10px', fontSize: '11px', color: '#1e293b', fontFamily: SANS }}>{e.cal || '—'}</td>
+                        <td style={{ padding: '6px 10px', fontSize: '10px', color: '#1e293b', fontFamily: SANS }}>{e.type || '—'}</td>
+                        <td style={{ padding: '6px 10px', fontSize: '10px', color: '#1e293b', fontFamily: MONO }}>{e.serial || '—'}</td>
+                        <td style={{ padding: '6px 10px', fontSize: '10px', color: '#1e293b', fontFamily: SANS }}>{e.cal || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </>
           )}
         </div>
 
-        <PdfFooter record={record} pageLabel="Page 1" />
+        <PageFooter record={record} pageLabel="Page 1 of 3" />
       </div>
 
-      {/* ── PAGE 2: Circuit Test Results ── */}
-      <div className="report-page" style={PAGE}>
-        <PdfHeader record={record} />
-        <div style={{ padding: '16px 20px', flex: 1 }}>
-          {/* Consumer and Sub Mains */}
-          <div style={card}>
-            <div style={cardHead('#1e4080')}>Consumer and Sub Mains</div>
-            <div style={{ padding: '8px' }}>
-              <CircuitGrid rows={mainsRows} onChange={() => {}} readOnly />
-            </div>
+      {/* ══════════════════════════════════════════════
+          PAGE 2: Circuit Test Results
+          ══════════════════════════════════════════════ */}
+      <div className="report-page" style={PAGE_STYLE}>
+        <BleedLine />
+        <PageHeader record={record} />
+        <div style={{ flex: 1, padding: '0 20px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <SHead title="Consumer and Sub Mains" color="#1e4080" />
+          <div style={{ flexShrink: 0, marginBottom: '12px' }}>
+            <InlineCircuitGrid rows={mainsRows} />
           </div>
-
-          {/* Final Sub Circuits */}
-          <div style={card}>
-            <div style={cardHead('#1a3a6b')}>Final Sub Circuits</div>
-            <div style={{ padding: '8px' }}>
-              <CircuitGrid rows={subRows} onChange={() => {}} readOnly />
-            </div>
+          <SHead title="Final Sub Circuits" color="#1a3a6b" />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <InlineCircuitGrid rows={subRows} />
           </div>
         </div>
-        <PdfFooter record={record} pageLabel="Page 2" />
+        <PageFooter record={record} pageLabel="Page 2 of 3" />
       </div>
 
-      {/* ── PAGE 3: Declaration & Sign-Off ── */}
-      <div className="report-page" style={PAGE}>
-        <PdfHeader record={record} />
-        <div style={{ padding: '16px 20px', flex: 1 }}>
-
+      {/* ══════════════════════════════════════════════
+          PAGE 3: Declaration & Sign-Off
+          ══════════════════════════════════════════════ */}
+      <div className="report-page" style={PAGE_STYLE}>
+        <BleedLine />
+        <PageHeader record={record} />
+        <div style={{ flex: 1, padding: '0 20px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <SHead title="Declaration & Sign-Off" />
           {/* Declaration box */}
-          <div style={{ background: '#dbeafe', border: `1px solid ${T}`, borderLeft: `4px solid ${T}`, borderRadius: '8px', padding: '14px 16px', marginBottom: '16px' }}>
-            <p style={{ fontSize: '11px', color: '#1c1917', lineHeight: 1.8, margin: 0, fontFamily: SANS }}>
-              I declare that the electrical installation described in this report has been tested in accordance with AS/NZS 3000:2018 and AS/NZS 3017, and that the results are as recorded above. The installation has been inspected and found to comply with the requirements of AS/NZS 3000:2018 to the best of my knowledge and belief.
+          <div style={{ background: '#dbeafe', border: `1px solid ${T}`, borderLeft: `4px solid ${T}`, borderRadius: '6px', padding: '12px 14px', marginBottom: '14px', flexShrink: 0 }}>
+            <p style={{ fontSize: '9.5px', color: '#1c1917', lineHeight: 1.7, margin: 0, fontFamily: SANS }}>
+              I certify that the electrical installation described in this schedule has been inspected and found to comply with the requirements of AS/NZS 3000:2018 to the best of my knowledge and belief.
             </p>
           </div>
-
-          {/* Signature + Verification details */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+          {/* Signature + Checklist */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px', flexShrink: 0 }}>
             {/* Signature card */}
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Registered Electrical Worker</span>
+              <div style={{ padding: '7px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '7.5px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Registered Electrical Worker</span>
               </div>
-              <div style={{ padding: '12px' }}>
+              <div style={{ padding: '10px 12px' }}>
                 {record.signatureData
-                  ? <div style={{ marginBottom: '10px' }}>
-                      <img src={record.signatureData} alt="Signature" style={{ height: '56px', maxWidth: '100%', objectFit: 'contain' }} />
-                      <div style={divider} />
-                      <div style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>Authorised Signature</div>
+                  ? <div style={{ marginBottom: '8px' }}>
+                      <img src={record.signatureData} alt="Signature" crossOrigin="anonymous" style={{ height: '54px', maxWidth: '100%', objectFit: 'contain' }} />
+                      <div style={{ height: '1px', background: '#e2e8f0', marginTop: '5px' }} />
+                      <div style={{ fontSize: '7.5px', color: '#94a3b8', fontFamily: SANS, marginTop: '3px' }}>Authorised Signature</div>
                     </div>
-                  : <div style={{ height: '56px', borderBottom: '2px solid #e2e8f0', marginBottom: '8px', display: 'flex', alignItems: 'flex-end' }}>
-                      <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: SANS }}>Authorised Signature</div>
+                  : <div style={{ height: '54px', borderBottom: '2px solid #e2e8f0', marginBottom: '8px', display: 'flex', alignItems: 'flex-end' }}>
+                      <div style={{ fontSize: '7.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px', fontFamily: SANS }}>Authorised Signature</div>
                     </div>
                 }
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-                  <PdfRow label="Name" value={record.workerName} />
-                  <PdfRow label="Licence No." value={record.licenceNumber} />
-                  <PdfRow label="Date" value={record.date} />
+                  <DRow label="Name" value={record.workerName} />
+                  <DRow label="Licence No." value={record.licenceNumber} />
+                  <DRow label="Date" value={record.date} />
                 </tbody></table>
               </div>
             </div>
-
             {/* Verification checklist */}
             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Verification Checklist</span>
+              <div style={{ padding: '7px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '7.5px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: SANS }}>Verification Checklist</span>
               </div>
-              <div style={{ padding: '12px' }}>
+              <div style={{ padding: '10px 12px' }}>
                 {[
                   ['Live Parts Screened', record.livePartsScreened],
                   ['Main Link / Neutral Reconnected', record.mainLinkNeutralReconnected],
                   ['MEN Compliant', record.msbMenCompliant],
                 ].map(([label, val]) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
-                    <span style={{ fontSize: '11px', color: '#475569', fontFamily: SANS }}>{label}</span>
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
-                      background: val === true || val === 'Yes' ? '#dcfce7' : val === false || val === 'No' ? '#fee2e2' : '#f1f5f9',
-                      color: val === true || val === 'Yes' ? '#16a34a' : val === false || val === 'No' ? '#dc2626' : '#64748b',
-                      fontFamily: SANS,
-                    }}>
+                    <span style={{ fontSize: '10px', color: '#475569', fontFamily: SANS }}>{label}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: val === true || val === 'Yes' ? '#dcfce7' : val === false || val === 'No' ? '#fee2e2' : '#f1f5f9', color: val === true || val === 'Yes' ? '#16a34a' : val === false || val === 'No' ? '#dc2626' : '#64748b', fontFamily: SANS }}>
                       {val === true || val === 'Yes' ? '✓ Yes' : val === false || val === 'No' ? '✗ No' : '—'}
                     </span>
                   </div>
@@ -342,24 +409,23 @@ function PdfBody({ record, mainsRows, subRows }) {
               </div>
             </div>
           </div>
-
-          {/* Notes / Defects */}
+          {/* Notes */}
           {record.notes && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '9px', fontWeight: 800, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px', fontFamily: SANS }}>Notes / Defects</div>
-              <p style={{ fontSize: '11px', color: '#1c1917', lineHeight: 1.7, margin: 0, fontFamily: SANS }}>{record.notes}</p>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: '7px', padding: '10px 14px', flexShrink: 0 }}>
+              <div style={{ fontSize: '8px', fontWeight: 800, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '5px', fontFamily: SANS }}>Notes / Defects</div>
+              <p style={{ fontSize: '10px', color: '#1c1917', lineHeight: 1.7, margin: 0, fontFamily: SANS }}>{record.notes}</p>
             </div>
           )}
-
-          {/* Standards footer note */}
-          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-            <p style={{ fontSize: '8px', color: '#94a3b8', fontFamily: SANS }}>
+          {/* Standards note */}
+          <div style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f1f5f9', flexShrink: 0 }}>
+            <p style={{ fontSize: '7px', color: '#94a3b8', margin: 0, fontFamily: SANS }}>
               This document has been prepared in accordance with AS/NZS 3000:2018 Wiring Rules, AS/NZS 3008.1.1 Selection of Cables, and AS/NZS 3017 Electrical Installations — Verification Guidelines. Results are valid at the time of testing only.
             </p>
           </div>
         </div>
-        <PdfFooter record={record} pageLabel="Page 3 of 3" />
+        <PageFooter record={record} pageLabel="Page 3 of 3" />
       </div>
+
     </div>
   );
 }
