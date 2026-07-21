@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getRecord, getRecordByShareToken } from '../lib/records';
 import CircuitGrid from '../components/CircuitGrid';
 import PdfActionModal from '../components/PdfActionModal';
+import ReportContent from '../components/report/ReportContent';
 import { buildTestRecordFilename, elementToPdfBlob } from '../lib/pdfUtils';
 import { ArrowLeft, Printer, Edit, Zap, CheckCircle2, Clock, Loader2, Download } from 'lucide-react';
 
@@ -113,80 +114,17 @@ export default function RecordView({ shareMode = false }) {
         </div>
       </div>
 
-      {/* Hidden off-screen render target for PDF generation */}
+      {/*
+        Hidden off-screen render target for PDF generation.
+        Uses the SAME ReportContent component as ReportPreview.jsx — ONE SOURCE OF TRUTH.
+        Any design change in ReportContent automatically updates both the preview page and this PDF.
+      */}
       <div
         ref={reportRef}
         style={{ position: 'fixed', top: 0, left: 0, width: '794px', opacity: 0, pointerEvents: 'none', zIndex: -1, background: 'white', overflow: 'visible' }}
         aria-hidden="true"
       >
-        <div className="report-page" style={{ width: '794px', minHeight: '1123px', background: 'white', padding: '32px' }}>
-          {hasCompanyBranding && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-              {record.companyLogoUrl && <img src={record.companyLogoUrl} alt="Company logo" style={{ height: '64px', maxWidth: '160px', objectFit: 'contain' }} />}
-              <div>
-                {record.companyName && <div style={{ fontWeight: 'bold', color: '#0f2044', fontSize: '18px' }}>{record.companyName}</div>}
-                {record.companyAbn && <div style={{ fontSize: '13px', color: '#64748b' }}>ABN: {record.companyAbn}</div>}
-                {record.companyPhone && <div style={{ fontSize: '13px', color: '#64748b' }}>{record.companyPhone}</div>}
-                {record.companyAddress && <div style={{ fontSize: '13px', color: '#64748b' }}>{record.companyAddress}</div>}
-              </div>
-            </div>
-          )}
-          <div style={{ background: 'linear-gradient(135deg, #0f2044, #1e4080)', color: 'white', borderRadius: '8px', padding: '24px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold' }}>Schedule of Test Results</div>
-            <div style={{ fontSize: '11px', color: '#bfdbfe', marginTop: '4px' }}>Mandatory testing in accordance with AS/NZS 3000:2018 clause 8.3</div>
-            {record.signatureData && (
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ fontSize: '10px', color: '#93c5fd', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>Digital Signature</div>
-                <img src={record.signatureData} alt="Signature" style={{ height: '48px', background: 'white', borderRadius: '8px', padding: '4px 8px' }} />
-              </div>
-            )}
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px', fontSize: '12px' }}>
-            <thead><tr style={{ background: '#0f2044', color: 'white' }}><th colSpan={4} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contractor &amp; Job Details</th></tr></thead>
-            <tbody>
-              <tr><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px', width: '25%' }}>Address / Location</td><td style={{ padding: '4px 8px', width: '25%' }}>{record.addressLocation || '—'}</td><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px', width: '25%' }}>Date</td><td style={{ padding: '4px 8px', width: '25%' }}>{record.date || '—'}</td></tr>
-              <tr style={{ background: '#f8fafc' }}><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Switchboard No.</td><td style={{ padding: '4px 8px' }}>{record.switchboardNumber || '—'}</td><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Contractor Name</td><td style={{ padding: '4px 8px' }}>{record.contractorName || '—'}</td></tr>
-              <tr><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Contractor Number</td><td style={{ padding: '4px 8px' }}>{record.contractorNumber || '—'}</td><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Worker Name</td><td style={{ padding: '4px 8px' }}>{record.workerName || '—'}</td></tr>
-              <tr style={{ background: '#f8fafc' }}><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Licence Number</td><td style={{ padding: '4px 8px' }}>{record.licenceNumber || '—'}</td><td style={{ padding: '4px 8px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Client Email</td><td style={{ padding: '4px 8px' }}>{record.clientEmail || '—'}</td></tr>
-            </tbody>
-          </table>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ background: '#1e4080', color: 'white', padding: '8px 12px', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '4px 4px 0 0' }}>Consumer and Sub Mains</div>
-            <div style={{ border: '1px solid #e2e8f0', borderTop: 'none', padding: '8px', borderRadius: '0 0 4px 4px' }}>
-              <CircuitGrid rows={mainsRows} onChange={() => {}} readOnly />
-            </div>
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ background: '#1a3a6b', color: 'white', padding: '8px 12px', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '4px 4px 0 0' }}>Final Sub Circuits</div>
-            <div style={{ border: '1px solid #e2e8f0', borderTop: 'none', padding: '8px', borderRadius: '0 0 4px 4px' }}>
-              <CircuitGrid rows={subRows} onChange={() => {}} readOnly />
-            </div>
-          </div>
-          <div>
-            <div style={{ background: '#475569', color: 'white', padding: '8px 12px', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '4px 4px 0 0' }}>Declaration</div>
-            <div style={{ border: '1px solid #e2e8f0', borderTop: 'none', padding: '16px', borderRadius: '0 0 4px 4px' }}>
-              <p style={{ fontSize: '11px', color: '#475569', marginBottom: '12px' }}>I declare that the electrical installation described above has been tested in accordance with AS/NZS 3000:2018 and AS/NZS 3017 and the results are as recorded above.</p>
-              {record.signatureData && (
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '4px' }}>Signature</div>
-                  <img src={record.signatureData} alt="Signature" style={{ height: '64px', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-                </div>
-              )}
-              <table style={{ fontSize: '11px' }}>
-                <tbody>
-                  <tr><td style={{ paddingRight: '16px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Name</td><td>{record.workerName || '—'}</td></tr>
-                  <tr><td style={{ paddingRight: '16px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', fontSize: '10px' }}>Licence No.</td><td>{record.licenceNumber || '—'}</td></tr>
-                </tbody>
-              </table>
-              {record.notes && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px', marginTop: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Notes / Defects</div>
-                  <p style={{ fontSize: '12px', color: '#334155' }}>{record.notes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {record && <ReportContent record={record} />}
       </div>
 
       {/* Visible on-screen record content */}
