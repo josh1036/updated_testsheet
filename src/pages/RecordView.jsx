@@ -459,7 +459,7 @@ export default function RecordView({ shareMode = false }) {
         style={{
           position: 'fixed', top: 0, left: '-9999px',
           width: '1000px',
-          opacity: 0, pointerEvents: 'none', zIndex: -1,
+          opacity: 1, visibility: 'visible', pointerEvents: 'none', zIndex: -1,
           overflow: 'visible',
         }}
         aria-hidden="true"

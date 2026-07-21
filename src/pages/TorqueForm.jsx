@@ -413,7 +413,7 @@ export default function TorqueForm() {
         </div>
       </div>
 
-      <div ref={reportRef} style={{ position: 'fixed', top: 0, left: 0, width: '794px', opacity: 0, pointerEvents: 'none', zIndex: -1, background: 'white', overflow: 'visible' }} aria-hidden="true">
+      <div ref={reportRef} style={{ position: 'fixed', top: 0, left: '-9999px', width: '794px', opacity: 1, visibility: 'visible', pointerEvents: 'none', zIndex: -1, background: 'white', overflow: 'visible' }} aria-hidden="true">
         <TorqueReportContent record={{ ...form, terminationRows: rows }} />
       </div>
 

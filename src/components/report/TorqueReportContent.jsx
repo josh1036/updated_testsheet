@@ -30,11 +30,14 @@ const SANS = "'Inter', system-ui, -apple-system, sans-serif";
 
 const PAGE = {
   width: '210mm',
+  minHeight: '297mm',
   boxSizing: 'border-box',
   fontFamily: SANS,
   background: '#fff',
   display: 'flex',
   flexDirection: 'column',
+  pageBreakAfter: 'always',
+  breakAfter: 'page',
 };
 
 /* ── Sub-components ── */
@@ -160,6 +163,16 @@ function CBRow({ label, value, mono }) {
     <div style={{ padding: '7px 0', borderBottom: '1px solid #f8fafc', display: 'flex', gap: '14px', alignItems: 'baseline' }}>
       <span style={{ fontSize: '7.5px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', width: '105px', flexShrink: 0 }}>{label}</span>
       <span style={{ fontSize: '10px', color: '#0f172a', fontWeight: 500, fontFamily: mono ? MONO : SANS }}>{value}</span>
+    </div>
+  );
+}
+
+/* Always renders — shows dash when value is empty */
+function CBRowFull({ label, value, mono }) {
+  return (
+    <div style={{ padding: '7px 0', borderBottom: '1px solid #f8fafc', display: 'flex', gap: '14px', alignItems: 'baseline' }}>
+      <span style={{ fontSize: '7.5px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', width: '105px', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: '10px', color: value ? '#0f172a' : '#cbd5e1', fontWeight: 500, fontFamily: mono ? MONO : SANS }}>{value || '—'}</span>
     </div>
   );
 }
@@ -350,21 +363,24 @@ export default function TorqueReportContent({ record }) {
 
           {/* Torque Tool & Calibration */}
           <CBSHead title="Torque Tool & Calibration" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px', marginBottom: '4px' }}>
-            <div>
-              <CBRow label="Tool Type" value={r.toolType} />
-              <CBRow label="Manufacturer" value={r.torqueWrenchManufacturer} />
-              <CBRow label="Model" value={r.torqueWrenchModel} mono />
-            </div>
-            <div>
-              <CBRow label="Serial No." value={r.toolSerialNumber} mono />
-              <CBRow label="Cal. Cert. No." value={r.calibrationCertNumber} mono />
-              {r.calibrationCertNumber && (
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', background: '#fff' }}>
+              <div style={{ padding: '10px 14px', borderRight: '1px solid #f1f5f9' }}>
+                <CBRowFull label="Tool Type" value={r.toolType} />
+                <CBRowFull label="Manufacturer" value={r.torqueWrenchManufacturer} />
+                <CBRowFull label="Model" value={r.torqueWrenchModel} mono />
+              </div>
+              <div style={{ padding: '10px 14px' }}>
+                <CBRowFull label="Serial No." value={r.toolSerialNumber} mono />
+                <CBRowFull label="Cal. Cert. No." value={r.calibrationCertNumber} mono />
                 <div style={{ padding: '7px 0', borderBottom: '1px solid #f8fafc', display: 'flex', gap: '14px', alignItems: 'baseline' }}>
                   <span style={{ fontSize: '7.5px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', width: '105px', flexShrink: 0 }}>Cal. Status</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '8px', fontWeight: 700 }}>✓ Valid</span>
+                  {r.calibrationCertNumber
+                    ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '4px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', fontSize: '8px', fontWeight: 700 }}>✓ Valid</span>
+                    : <span style={{ fontSize: '10px', color: '#cbd5e1' }}>—</span>
+                  }
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
