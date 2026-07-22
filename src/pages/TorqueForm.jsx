@@ -17,7 +17,7 @@ const PHASE_OPTIONS = [
   { value: 'E', label: 'E', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
   { value: 'PEN', label: 'PEN', color: '#15803d', bg: '#f0fdf4', border: '#4ade80' },
 ];
-const EMPTY_ROW = () => ({ switchboard: '', deviceDescription: '', phase: '', requiredTorque: '', actualTorque: '', result: '', comments: '' });
+const EMPTY_ROW = () => ({ switchboard: '', deviceDescription: '', phase: [], requiredTorque: '', actualTorque: '', result: '', comments: '' });
 const EMPTY_FORM = {
   status: 'Draft', certificateNumber: '', projectName: '', client: '', siteName: '',
   siteAddress: '', switchboardId: '', location: '', workOrderNumber: '', drawingReference: '',
@@ -46,15 +46,24 @@ function CellInput({ value, onChange, placeholder = '', type = 'text', className
   return <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={`w-full bg-transparent border-none outline-none text-center text-xs py-0.5 px-1 focus:bg-blue-50/60 rounded ${className}`} />;
 }
 function PhaseCell({ value, onChange }) {
+  // Support multi-select: value is an array of selected phase strings
+  const selected = Array.isArray(value) ? value : (value ? [value] : []);
+  const toggle = (v) => {
+    const next = selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v];
+    onChange(next);
+  };
   return (
     <div className="flex items-center justify-center gap-1 flex-wrap py-0.5">
-      {PHASE_OPTIONS.map(p => (
-        <button key={p.value} type="button" onClick={() => onChange(value === p.value ? '' : p.value)}
-          className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all"
-          style={{ background: value === p.value ? p.color : p.bg, borderColor: value === p.value ? p.color : p.border, color: value === p.value ? '#fff' : p.color }}>
-          {p.label}
-        </button>
-      ))}
+      {PHASE_OPTIONS.map(p => {
+        const active = selected.includes(p.value);
+        return (
+          <button key={p.value} type="button" onClick={() => toggle(p.value)}
+            className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all"
+            style={{ background: active ? p.color : p.bg, borderColor: active ? p.color : p.border, color: active ? '#fff' : p.color }}>
+            {p.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -159,7 +168,7 @@ export default function TorqueForm() {
   const addRow = () => setRows(r => [...r, EMPTY_ROW()]);
   const addThreePhase = () => {
     const sb = form.switchboardId || '';
-    setRows(r => [...r, { ...EMPTY_ROW(), switchboard: sb, phase: 'L1' }, { ...EMPTY_ROW(), switchboard: sb, phase: 'L2' }, { ...EMPTY_ROW(), switchboard: sb, phase: 'L3' }, { ...EMPTY_ROW(), switchboard: sb, phase: 'N' }, { ...EMPTY_ROW(), switchboard: sb, phase: 'E' }]);
+    setRows(r => [...r, { ...EMPTY_ROW(), switchboard: sb, phase: ['L1'] }, { ...EMPTY_ROW(), switchboard: sb, phase: ['L2'] }, { ...EMPTY_ROW(), switchboard: sb, phase: ['L3'] }, { ...EMPTY_ROW(), switchboard: sb, phase: ['N'] }, { ...EMPTY_ROW(), switchboard: sb, phase: ['E'] }]);
   };
   const duplicateRow = i => setRows(r => { const c = [...r]; c.splice(i + 1, 0, { ...r[i] }); return c; });
   const removeRow = i => setRows(r => r.filter((_, idx) => idx !== i));
@@ -328,12 +337,13 @@ export default function TorqueForm() {
               </thead>
               <tbody>
                 {rows.map((row, i) => {
-                  const phaseOpt = PHASE_OPTIONS.find(p => p.value === row.phase);
+                  const phases = Array.isArray(row.phase) ? row.phase : (row.phase ? [row.phase] : []);
+                  const firstPhaseOpt = phases.length > 0 ? PHASE_OPTIONS.find(p => p.value === phases[0]) : null;
                   const rowBg = row.result === 'Pass' ? 'bg-emerald-50/40' : row.result === 'Fail' ? 'bg-red-50/40' : i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
                   return (
                     <tr key={i} className={rowBg}>
                       <td className="border border-slate-200 px-1 py-1 text-center">
-                        <span className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[9px] font-bold" style={phaseOpt ? { background: phaseOpt.bg, color: phaseOpt.color, border: `1px solid ${phaseOpt.border}` } : { background: '#f1f5f9', color: '#94a3b8' }}>{i + 1}</span>
+                        <span className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[9px] font-bold" style={firstPhaseOpt ? { background: firstPhaseOpt.bg, color: firstPhaseOpt.color, border: `1px solid ${firstPhaseOpt.border}` } : { background: '#f1f5f9', color: '#94a3b8' }}>{i + 1}</span>
                       </td>
                       <td className="border border-slate-200 px-1 py-1"><CellInput value={row.switchboard} onChange={v => setRow(i, 'switchboard', v)} className="text-left" /></td>
                       <td className="border border-slate-200 px-1 py-1"><CellInput value={row.deviceDescription} onChange={v => setRow(i, 'deviceDescription', v)} className="text-left" /></td>

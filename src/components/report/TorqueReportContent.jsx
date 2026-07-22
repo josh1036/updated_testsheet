@@ -107,18 +107,26 @@ function FieldRow({ label, value, mono = false, span = 1 }) {
   );
 }
 
-/* ── Phase circle badge ── */
+/* ── Phase circle badges (supports array or legacy string) ── */
 function PhaseBadge({ phase }) {
-  const p = PHASE_OPTIONS.find(x => x.value === phase);
-  if (!p) return <span style={{ color: SLATE_300, fontSize: '9px' }}>—</span>;
+  const phases = Array.isArray(phase) ? phase : (phase ? [phase] : []);
+  if (!phases.length) return <span style={{ color: SLATE_300, fontSize: '9px' }}>—</span>;
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      padding: '2px 8px', borderRadius: '4px',
-      background: p.bg, color: p.color, border: `1px solid ${p.border}`,
-      fontWeight: 800, fontSize: '9px', fontFamily: SANS,
-    }}>
-      {p.label}
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '2px', flexWrap: 'wrap' }}>
+      {phases.map(v => {
+        const p = PHASE_OPTIONS.find(x => x.value === v);
+        if (!p) return null;
+        return (
+          <span key={v} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '20px', height: '20px', borderRadius: '50%',
+            background: p.color, color: '#fff',
+            fontWeight: 800, fontSize: '8px', fontFamily: SANS,
+          }}>
+            {p.label}
+          </span>
+        );
+      })}
     </span>
   );
 }
