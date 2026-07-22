@@ -125,10 +125,10 @@ function PhasePill({ value }) {
 }
 
 function CircuitTbl({ rows }) {
-  const filled = (rows || []).filter(r => r.circuitId || r.conductorSize || r.maxDemand);
+  const filled = (rows || []).filter(r => r.cableId || r.circuitId || r.conductorSize || r.maxDemand);
   if (!filled.length) return null;
   const allCols = [
-    { key: 'circuitId', label: 'Circuit ID' }, { key: 'numPhases', label: 'Ph', phase: true },
+    { key: 'cableId', label: 'Cable No.' }, { key: 'circuitId', label: 'Circuit ID' }, { key: 'numPhases', label: 'Ph', phase: true },
     { key: 'maxDemand', label: 'Max Dem (A)' }, { key: 'ocpdType', label: 'OCPD Type' },
     { key: 'ocpdCurrentRating', label: 'OCPD (A)' }, { key: 'conductorCcc', label: 'CCC (A)' },
     { key: 'conductorSize', label: 'Size (mm²)' }, { key: 'earthContMain', label: 'Earth Main' },
@@ -162,8 +162,8 @@ function CircuitTbl({ rows }) {
                     padding: '6px 8px',
                     borderRight: '1px solid #f1f5f9',
                     fontSize: '8.5px',
-                    color: c.key === 'circuitId' ? T : '#334155',
-                    fontWeight: c.key === 'circuitId' ? 700 : 400,
+                    color: c.key === 'circuitId' || c.key === 'cableId' ? T : '#334155',
+                    fontWeight: c.key === 'circuitId' || c.key === 'cableId' ? 700 : 400,
                     fontFamily: ['ocpdCurrentRating','conductorCcc','conductorSize','earthContMain','insResAE','insResAN','zaRpheActual','rcdCurrentTrip','circuitLength','maxDemand'].includes(c.key) ? MONO : SANS,
                   }}>
                     {empty ? null : c.phase ? <PhasePill value={val} /> : c.pf ? <PassBadge value={val} /> : val}
@@ -361,7 +361,7 @@ export default function ReportContent({ record }) {
       )}
 
       {/* ── Consumer & Sub Mains ── */}
-      {(r.mainsCircuits || []).some(x => x.circuitId || x.conductorSize) && (
+      {(r.mainsCircuits || []).some(x => x.cableId || x.circuitId || x.conductorSize) && (
         <PageWrap>
           <CBHeader record={r} />
           <div style={{ padding: '0 26px 20px 26px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -373,7 +373,7 @@ export default function ReportContent({ record }) {
       )}
 
       {/* ── Final Sub Circuits ── */}
-      {(r.subCircuits || []).some(x => x.circuitId || x.conductorSize) && (
+      {(r.subCircuits || []).some(x => x.cableId || x.circuitId || x.conductorSize) && (
         <PageWrap>
           <CBHeader record={r} />
           <div style={{ padding: '0 26px 20px 26px', flex: 1, display: 'flex', flexDirection: 'column' }}>

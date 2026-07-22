@@ -21,7 +21,7 @@ function SH({ title, colour }) {
 }
 
 const emptyRow = () => ({
-  circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
+  cableId: '', circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
   conductorCcc: '', conductorSize: '', earthContMain: '', earthContEq: '', polarity: '',
   insResAE: '', insResAN: '', insResNE: '', insResPP: '', insResOk: '',
   zaRpheActual: '', zaRpheCompliant: '', rcdPushButton: '', rcdCurrentTrip: '',
@@ -140,7 +140,7 @@ const PHASE_OPTS = [
 ];
 
 function InlineCircuitGrid({ rows }) {
-  const headers = ['#', 'Circuit ID', 'Ph', 'Max D (A)', 'OCPD Type', 'OCPD (A)', 'PSC (kA)', 'CCC (A)', 'Size mm²', 'E-Cont Ω', 'Polarity', 'Ins A-E', 'Ins A-N', 'Ins N-E', 'Ins OK', 'Za/Rphe', 'RCD mA', 'Comments'];
+  const headers = ['#', 'Cable No.', 'Circuit ID', 'Ph', 'Max D (A)', 'OCPD Type', 'OCPD (A)', 'PSC (kA)', 'CCC (A)', 'Size mm²', 'E-Cont Ω', 'Polarity', 'Ins A-E', 'Ins A-N', 'Ins N-E', 'Ins OK', 'Za/Rphe', 'RCD mA', 'Comments'];
   return (
     <div style={{ border: '1px solid #e2e8f0', borderRadius: '7px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px', fontFamily: SANS }}>
@@ -155,13 +155,14 @@ function InlineCircuitGrid({ rows }) {
           {rows.map((row, idx) => {
             const ph = PHASE_OPTS.find(p => p.value === row.phase || p.value === row.numPhases);
             const rowBg = idx % 2 === 0 ? '#fff' : '#fafbff';
-            const isEmpty = !row.circuitId && !row.maxDemand && !row.ocpdType;
+            const isEmpty = !row.cableId && !row.circuitId && !row.maxDemand && !row.ocpdType;
             const c = (v) => <span style={{ color: isEmpty || !v ? '#cbd5e1' : '#1e293b', fontFamily: MONO, fontSize: '8px' }}>{v || '—'}</span>;
             return (
               <tr key={idx} style={{ background: rowBg, borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                   <span style={{ width: '16px', height: '16px', borderRadius: '3px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 700, fontFamily: MONO, background: ph ? ph.bg : '#f1f5f9', color: ph ? ph.color : '#94a3b8', border: ph ? `1px solid ${ph.border}` : '1px solid #e2e8f0' }}>{idx + 1}</span>
                 </td>
+                <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.cableId)}</td>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.circuitId)}</td>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                   {ph

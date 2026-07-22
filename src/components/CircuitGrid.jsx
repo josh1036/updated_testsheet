@@ -28,7 +28,7 @@ function PhaseCell({ value, onChange, readOnly }) {
 }
 
 export const emptyRow = () => ({
-  rowOrder: 0, circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
+  rowOrder: 0, cableId: '', circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
   conductorCcc: '', conductorSize: '', earthContMain: '', earthContEq: '', polarity: '',
   insResAE: '', insResAN: '', insResNE: '', insResPP: '', insResOk: '',
   zaRpheActual: '', zaRpheCompliant: '', rcdPushButton: '', rcdCurrentTrip: '',
@@ -56,6 +56,7 @@ export default function CircuitGrid({ rows, onChange, minRows = 5, readOnly = fa
       <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', minWidth: '1400px' }}>
         <thead>
           <tr style={{ background: '#0f2044', color: 'white', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <th rowSpan={2} style={{ border: '1px solid #1e4080', padding: '6px 8px', textAlign: 'center', minWidth: '72px' }}>Cable No.</th>
             <th rowSpan={2} style={{ border: '1px solid #1e4080', padding: '6px 8px', textAlign: 'center' }}>Circuit ID</th>
             <th rowSpan={2} style={{ border: '1px solid #1e4080', padding: '6px 4px', textAlign: 'center' }}>Ph.</th>
             <th rowSpan={2} style={{ border: '1px solid #1e4080', padding: '6px 4px', textAlign: 'center' }}>Max Demand (A)</th>
@@ -81,6 +82,7 @@ export default function CircuitGrid({ rows, onChange, minRows = 5, readOnly = fa
             const bg = phaseOpt ? phaseOpt.rowTint : (i % 2 === 0 ? '#fff' : 'rgba(248,250,252,0.6)');
             return (
               <tr key={i} style={{ background: bg }}>
+                <td style={{ border: '1px solid #e2e8f0', padding: '2px 4px' }}>{inp(i, 'cableId')}</td>
                 <td style={{ border: '1px solid #e2e8f0', padding: '2px 4px' }}>{inp(i, 'circuitId')}</td>
                 <td style={{ border: '1px solid #e2e8f0', padding: '2px', minWidth: '155px' }}><PhaseCell value={row.numPhases} onChange={v => set(i, 'numPhases', v)} readOnly={readOnly} /></td>
                 <td style={{ border: '1px solid #e2e8f0', padding: '2px 4px' }}>{inp(i, 'maxDemand')}</td>
