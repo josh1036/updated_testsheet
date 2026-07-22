@@ -245,8 +245,7 @@ export default function TorqueForm() {
             <span className="font-bold text-[#0f2044] text-sm hidden sm:block">Torque Certificate</span>
           </button>
           <div className="flex items-center gap-2">
-            {/* TRIAL react-to-print — to revert change handlePrint → handleGeneratePdf */}
-            <button onClick={handlePrint} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40">
+            <button onClick={handleGeneratePdf} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40">
               <FileDown className="w-3.5 h-3.5" /> PDF
             </button>
             <button onClick={() => handleSave()} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-60">
