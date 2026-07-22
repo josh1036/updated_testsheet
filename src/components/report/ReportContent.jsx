@@ -111,16 +111,24 @@ function PassBadge({ value }) {
 }
 
 function PhasePill({ value }) {
-  if (!value || value === 'na') return <span style={{ color: '#94a3b8', fontSize: '8px' }}>—</span>;
-  const p = PHASE_COLORS[value];
-  if (!p) return <span style={{ fontSize: '8px', color: '#334155' }}>{value}</span>;
+  // value may be an array (new) or a string (legacy)
+  const phases = Array.isArray(value) ? value : (value && value !== 'na' ? [value] : []);
+  if (!phases.length) return <span style={{ color: '#94a3b8', fontSize: '8px' }}>—</span>;
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: '24px', height: '24px', borderRadius: '50%',
-      background: p.color, color: '#fff', fontWeight: 900, fontSize: '8px',
-      fontFamily: SANS, flexShrink: 0,
-    }}>{p.label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap' }}>
+      {phases.map(v => {
+        const p = PHASE_COLORS[v];
+        if (!p) return <span key={v} style={{ fontSize: '8px', color: '#334155' }}>{v}</span>;
+        return (
+          <span key={v} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '20px', height: '20px', borderRadius: '50%',
+            background: p.color, color: '#fff', fontWeight: 900, fontSize: '7px',
+            fontFamily: SANS, flexShrink: 0,
+          }}>{p.label}</span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -138,7 +146,8 @@ function CircuitTbl({ rows }) {
     { key: 'rcdCurrentTrip', label: 'RCD (ms)' }, { key: 'circuitLength', label: 'Length (m)' },
     { key: 'comments', label: 'Comments' },
   ];
-  const cols = allCols.filter(c => filled.some(r => r[c.key] && r[c.key] !== 'na'));
+  const hasVal = (r, key) => { const v = r[key]; return Array.isArray(v) ? v.length > 0 : (v && v !== 'na'); };
+  const cols = allCols.filter(c => filled.some(r => hasVal(r, c.key)));
   return (
     <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto', fontFamily: SANS }}>
@@ -156,7 +165,7 @@ function CircuitTbl({ rows }) {
             <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafbff', borderBottom: '1px solid #f1f5f9', pageBreakInside: 'avoid' }}>
               {cols.map(c => {
                 const val = row[c.key];
-                const empty = !val || val === 'na';
+                const empty = Array.isArray(val) ? val.length === 0 : (!val || val === 'na');
                 return (
                   <td key={c.key} style={{
                     padding: '6px 8px',

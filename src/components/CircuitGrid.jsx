@@ -10,25 +10,41 @@ const PHASE_OPTIONS = [
 ];
 
 function PhaseCell({ value, onChange, readOnly }) {
+  // value is now an array of selected phase strings e.g. ['L1','L2']
+  const selected = Array.isArray(value) ? value : (value ? [value] : []);
   if (readOnly) {
-    const opt = PHASE_OPTIONS.find(p => p.value === value);
-    if (!opt) return <span style={{ display: 'block', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>—</span>;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: opt.color, color: '#fff', fontWeight: 900, fontSize: '9px' }}>{opt.label}</span>;
+    if (!selected.length) return <span style={{ display: 'block', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>—</span>;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', flexWrap: 'wrap' }}>
+        {selected.map(v => {
+          const opt = PHASE_OPTIONS.find(p => p.value === v);
+          if (!opt) return null;
+          return <span key={v} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', background: opt.color, color: '#fff', fontWeight: 900, fontSize: '8px' }}>{opt.label}</span>;
+        })}
+      </div>
+    );
   }
+  const toggle = (v) => {
+    const next = selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v];
+    onChange(next);
+  };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', flexWrap: 'wrap', padding: '2px' }}>
-      {PHASE_OPTIONS.map(p => (
-        <button key={p.value} type="button" title={p.label} onClick={() => onChange(value === p.value ? '' : p.value)}
-          style={{ width: '22px', height: '22px', fontSize: '7px', borderRadius: '50%', border: `2px solid ${value === p.value ? p.color : p.border}`, background: value === p.value ? p.color : p.bg, color: value === p.value ? '#fff' : p.color, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {p.label}
-        </button>
-      ))}
+      {PHASE_OPTIONS.map(p => {
+        const active = selected.includes(p.value);
+        return (
+          <button key={p.value} type="button" title={p.label} onClick={() => toggle(p.value)}
+            style={{ width: '22px', height: '22px', fontSize: '7px', borderRadius: '50%', border: `2px solid ${active ? p.color : p.border}`, background: active ? p.color : p.bg, color: active ? '#fff' : p.color, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s ease' }}>
+            {p.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 export const emptyRow = () => ({
-  rowOrder: 0, cableId: '', circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
+  rowOrder: 0, cableId: '', circuitId: '', numPhases: [], maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
   conductorCcc: '', conductorSize: '', earthContMain: '', earthContEq: '', polarity: '',
   insResAE: '', insResAN: '', insResNE: '', insResPP: '', insResOk: '',
   zaRpheActual: '', zaRpheCompliant: '', rcdPushButton: '', rcdCurrentTrip: '',
@@ -78,7 +94,8 @@ export default function CircuitGrid({ rows, onChange, minRows = 5, readOnly = fa
         </thead>
         <tbody>
           {rows.map((row, i) => {
-            const phaseOpt = PHASE_OPTIONS.find(p => p.value === row.numPhases);
+            const phases = Array.isArray(row.numPhases) ? row.numPhases : (row.numPhases ? [row.numPhases] : []);
+            const phaseOpt = phases.length === 1 ? PHASE_OPTIONS.find(p => p.value === phases[0]) : null;
             const bg = phaseOpt ? phaseOpt.rowTint : (i % 2 === 0 ? '#fff' : 'rgba(248,250,252,0.6)');
             return (
               <tr key={i} style={{ background: bg }}>

@@ -21,7 +21,7 @@ function SH({ title, colour }) {
 }
 
 const emptyRow = () => ({
-  cableId: '', circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
+  cableId: '', circuitId: '', numPhases: [], maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
   conductorCcc: '', conductorSize: '', earthContMain: '', earthContEq: '', polarity: '',
   insResAE: '', insResAN: '', insResNE: '', insResPP: '', insResOk: '',
   zaRpheActual: '', zaRpheCompliant: '', rcdPushButton: '', rcdCurrentTrip: '',
@@ -153,7 +153,8 @@ function InlineCircuitGrid({ rows }) {
         </thead>
         <tbody>
           {rows.map((row, idx) => {
-            const ph = PHASE_OPTS.find(p => p.value === row.phase || p.value === row.numPhases);
+            const phases = Array.isArray(row.numPhases) ? row.numPhases : (row.numPhases ? [row.numPhases] : []);
+            const ph = phases.length === 1 ? PHASE_OPTS.find(p => p.value === phases[0]) : null;
             const rowBg = idx % 2 === 0 ? '#fff' : '#fafbff';
             const isEmpty = !row.cableId && !row.circuitId && !row.maxDemand && !row.ocpdType;
             const c = (v) => <span style={{ color: isEmpty || !v ? '#cbd5e1' : '#1e293b', fontFamily: MONO, fontSize: '8px' }}>{v || '—'}</span>;
@@ -165,9 +166,15 @@ function InlineCircuitGrid({ rows }) {
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.cableId)}</td>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.circuitId)}</td>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                  {ph
-                    ? <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 5px', borderRadius: '3px', background: ph.bg, color: ph.color, border: `1px solid ${ph.border}`, fontWeight: 800, fontSize: '7px' }}>{ph.value}</span>
-                    : <span style={{ color: '#cbd5e1' }}>—</span>
+                  {phases.length === 0
+                    ? <span style={{ color: '#cbd5e1' }}>—</span>
+                    : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', flexWrap: 'wrap' }}>
+                        {phases.map(v => {
+                          const p = PHASE_OPTS.find(x => x.value === v);
+                          if (!p) return null;
+                          return <span key={v} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '2px 4px', borderRadius: '3px', background: p.bg, color: p.color, border: `1px solid ${p.border}`, fontWeight: 800, fontSize: '7px' }}>{p.value}</span>;
+                        })}
+                      </div>
                   }
                 </td>
                 <td style={{ padding: '5px 4px', textAlign: 'center' }}>{c(row.maxDemand)}</td>

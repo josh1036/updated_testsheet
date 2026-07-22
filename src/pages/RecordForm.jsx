@@ -15,7 +15,7 @@ const DRAFT_KEY = 'asnzs_draft';
 const COMPANY_PROFILE_KEY = (userId) => `asnzs_company_${userId}`;
 
 const emptyRow = () => ({
-  cableId: '', circuitId: '', numPhases: '', maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
+  cableId: '', circuitId: '', numPhases: [], maxDemand: '', ocpdType: '', ocpdCurrentRating: '', ocpdPscRating: '',
   conductorCcc: '', conductorSize: '', earthContMain: '', earthContEq: '', polarity: '',
   insResAE: '', insResAN: '', insResNE: '', insResPP: '', insResOk: '',
   zaRpheActual: '', zaRpheCompliant: '', rcdPushButton: '', rcdCurrentTrip: '',
