@@ -2,13 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-@media print {
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
-  body { background: white !important; font-size: 10pt; }
-  .print-page { width: 210mm; min-height: 297mm; padding: 10mm 12mm; margin: 0 auto; background: white; box-shadow: none !important; }
-  table { page-break-inside: auto; }
-  tr { page-break-inside: avoid; }
-  thead { display: table-header-group; }
-}
+/* ── Screen-only: hide print-only elements ── */
 .print-only { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * @media print — react-to-print renders inside an iframe using these rules.
+ * The browser's native print engine handles page breaks, headers, footers.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  /* ── Page setup ── */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
+  }
+
+  html, body {
+    background: white !important;
+    font-size: 10pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* ── Ensure ALL backgrounds and colours print (gradients, badges, etc.) ── */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ── Hide UI chrome ── */
+  .no-print { display: none !important; }
+  nav, [data-radix-popper-content-wrapper] { display: none !important; }
+
+  /* ── Show print-only elements ── */
+  .print-only { display: block !important; }
+
+  /* ── Repeating branded header on every printed page ── */
+  .print-header {
+    display: table-header-group;
+  }
+  .print-footer {
+    display: table-footer-group;
+  }
+
+  /* ── Page break helpers ── */
+  .print-break-before { break-before: page; page-break-before: always; }
+  .print-break-after  { break-after:  page; page-break-after:  always; }
+  .print-avoid-break  { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ── Tables ── */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* ── Prevent orphaned headings ── */
+  h1, h2, h3, h4 { page-break-after: avoid; orphans: 3; widows: 3; }
+
+  /* ── Remove box shadows and rounded corners for print ── */
+  .rounded-xl, .rounded-lg, .rounded-md { border-radius: 4px !important; }
+  .shadow-sm, .shadow, .shadow-md, .shadow-lg { box-shadow: none !important; }
+}

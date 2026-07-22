@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useReactToPrint } from 'react-to-print';
 import { supabase } from '../lib/supabase';
 import SignaturePad from '../components/SignaturePad';
 import PdfActionModal from '../components/PdfActionModal';
@@ -122,6 +123,7 @@ export default function TorqueForm() {
   const navigate = useNavigate();
   const isNew = !id || id === 'new';
   const reportRef = useRef(null);
+  const printRef = useRef(null); // react-to-print trial
   const [form, setForm] = useState(EMPTY_FORM);
   const [rows, setRows] = useState([EMPTY_ROW(), EMPTY_ROW(), EMPTY_ROW()]);
   const [loading, setLoading] = useState(!!id && id !== 'new');
@@ -196,6 +198,25 @@ export default function TorqueForm() {
     setUploadingCalDoc(false);
   };
 
+  // ── react-to-print trial: uses browser's native print engine ──
+  // To revert: change onClick={handlePrint} back to onClick={handleGeneratePdf}
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: buildTorqueFilename(form),
+    pageStyle: `
+      @page { size: A4 portrait; margin: 12mm 10mm; }
+      @media print {
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .no-print { display: none !important; }
+        nav { display: none !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        .print-break-before { break-before: page; page-break-before: always; }
+      }
+    `,
+  });
+
   const handleGeneratePdf = async () => {
     setPdfModal({ open: true, blob: null, generating: true, progress: 0.05, error: null });
     try {
@@ -224,7 +245,8 @@ export default function TorqueForm() {
             <span className="font-bold text-[#0f2044] text-sm hidden sm:block">Torque Certificate</span>
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={handleGeneratePdf} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40">
+            {/* TRIAL react-to-print — to revert change handlePrint → handleGeneratePdf */}
+            <button onClick={handlePrint} disabled={isNew} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-40">
               <FileDown className="w-3.5 h-3.5" /> PDF
             </button>
             <button onClick={() => handleSave()} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-medium hover:border-[#0f2044] disabled:opacity-60">
@@ -237,7 +259,7 @@ export default function TorqueForm() {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div ref={printRef} className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-[#0f2044]">{isNew ? 'New Torque Certificate' : (form.projectName || form.certificateNumber || 'Torque Certificate')}</h1>
           <p className="text-slate-500 text-sm mt-1">Termination Torque Verification Certificate</p>

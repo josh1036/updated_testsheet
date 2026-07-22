@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useReactToPrint } from 'react-to-print';
 import { getRecord, getRecordByShareToken } from '../lib/records';
 import CircuitGrid from '../components/CircuitGrid';
 import PdfActionModal from '../components/PdfActionModal';
@@ -456,7 +457,26 @@ export default function RecordView({ shareMode = false }) {
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const reportRef = useRef(null);
+  const printRef = useRef(null); // react-to-print trial
   const [pdfModal, setPdfModal] = useState({ open: false, blob: null, generating: false, progress: 0, error: null });
+
+  // ── react-to-print trial: uses browser's native print engine ──
+  // To revert: change onClick={handlePrint} back to onClick={handleSavePdf}
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: record ? buildTestRecordFilename(record) : 'Schedule of Test Results',
+    pageStyle: `
+      @page { size: A4 portrait; margin: 12mm 10mm; }
+      @media print {
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .no-print { display: none !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+        .print-break-before { break-before: page; page-break-before: always; }
+      }
+    `,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -524,7 +544,8 @@ export default function RecordView({ shareMode = false }) {
             <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-sm hover:border-[#0f2044] transition-colors no-print">
               <Printer className="w-4 h-4" /> Print
             </button>
-            <button onClick={handleSavePdf} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0f2044] text-white text-sm hover:bg-[#162d4a] transition-colors no-print">
+            {/* TRIAL react-to-print — to revert change handlePrint → handleSavePdf */}
+            <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0f2044] text-white text-sm hover:bg-[#162d4a] transition-colors no-print">
               <Download className="w-4 h-4" /> Save PDF
             </button>
             {!shareMode && params.id && (
@@ -550,8 +571,8 @@ export default function RecordView({ shareMode = false }) {
         {record && <PdfBody record={record} mainsRows={mainsRows} subRows={subRows} />}
       </div>
 
-      {/* ── Visible on-screen content (Tailwind is fine here) ── */}
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4 print-page">
+      {/* ── Visible on-screen content — printRef points here for react-to-print ── */}
+      <div ref={printRef} className="max-w-5xl mx-auto px-4 py-6 space-y-4 print-page">
         {hasCompanyBranding && (
           <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-start gap-4">
             {record.companyLogoUrl && <img src={record.companyLogoUrl} alt="Company logo" className="h-16 max-w-[160px] object-contain" crossOrigin="anonymous" />}
@@ -630,7 +651,8 @@ export default function RecordView({ shareMode = false }) {
             <button onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-xl text-sm hover:border-[#0f2044] transition-colors">
               <Printer className="w-4 h-4" /> Print
             </button>
-            <button onClick={handleSavePdf} className="flex items-center gap-1.5 px-4 py-2 bg-[#0f2044] text-white rounded-xl text-sm hover:bg-[#162d4a] transition-colors">
+            {/* TRIAL react-to-print — to revert change handlePrint → handleSavePdf */}
+            <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 bg-[#0f2044] text-white rounded-xl text-sm hover:bg-[#162d4a] transition-colors">
               <Download className="w-4 h-4" /> Save PDF
             </button>
             {!shareMode && params.id && (
